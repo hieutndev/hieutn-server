@@ -53,7 +53,6 @@ class MySQL {
 			}
 
 		} catch (error) {
-			console.log(typeof error)
 			if (typeof error !== 'string') {
 				return {
 					isCompleted: false,
