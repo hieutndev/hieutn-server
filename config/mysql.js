@@ -22,7 +22,7 @@ class MySQL {
 		})
 	}
 
-	async query(sqlString, values) {
+	async query(sqlString, values = []) {
 		try {
 			if (!Array.isArray(values)) {
 				return {
@@ -72,7 +72,7 @@ class MySQL {
 		}
 	}
 
-	async queryMany(sqlString, values) {
+	async queryMany(sqlString, values = []) {
 		try {
 			if (!Array.isArray(values)) {
 				return {
