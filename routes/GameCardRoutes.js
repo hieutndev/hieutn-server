@@ -4,6 +4,13 @@ const router = express.Router();
 const GameCardController = require('../controllers/GameCardController');
 
 
-router.use('/', GameCardController.getAllRooms);
+router.get('/', GameCardController.getAllRooms);
+router.post('/', GameCardController.createNewRoom);
+
+router.get("/:roomId/match-results", GameCardController.getRoomMatchResults)
+router.post("/:roomId/match-results", GameCardController.insertNewResults)
+router.get("/:roomId/results", GameCardController.getRoomResults)
+router.get("/:roomId", GameCardController.getRoomDetails)
+router.patch("/:roomId", GameCardController.updateRoomConfig)
 
 module.exports = router;

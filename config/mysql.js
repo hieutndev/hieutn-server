@@ -53,6 +53,9 @@ class MySQL {
 			}
 
 		} catch (error) {
+
+			console.log("Error in mysql queryOne", error);
+
 			if (typeof error !== 'string') {
 				return {
 					isCompleted: false,
