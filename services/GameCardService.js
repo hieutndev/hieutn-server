@@ -451,6 +451,26 @@ class GameCardService extends BaseService {
 		}
 	}
 
+	async closeRoom(roomId) {
+		try {
+			const closeRoomResult = await this.query(gameCardSQL.closeRoom, [roomId]);
+
+			if (!closeRoomResult.isCompleted) {
+				return {
+					isCompleted: false,
+					message: closeRoomResult.message,
+					results: [],
+				}
+			}
+
+			return {
+				isCompleted: true,
+				results: closeRoomResult.results
+			}
+		} catch (error) {
+			throw new Error(error)
+		}
+	}
 
 }
 

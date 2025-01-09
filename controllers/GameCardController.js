@@ -176,6 +176,25 @@ class GameCardController extends BaseController {
 			return next({ status: 500, error });
 		}
 	}
+
+	async closeRoom(req, res, next) {
+		try {
+			const { roomId } = req.params;
+
+			const closeRoomResult = await GameCardService.closeRoom(roomId);
+
+			if (!closeRoomResult.isCompleted) {
+				return next({
+					status: 400,
+					message: closeRoomResult.message
+				});
+			}
+
+			return super.createSuccessResponse(res, 200, Message.successUpdate("Room Status"), closeRoomResult.results);
+		} catch (error) {
+			return next({ status: 500, error });
+		}
+	}
 }
 
 module.exports = new GameCardController();

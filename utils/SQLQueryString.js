@@ -48,6 +48,9 @@ const QueryString = {
                                burnt_out = ?,
                                swept_out = ?
                            WHERE room_id = ?`,
+		closeRoom: `UPDATE gcard_rooms
+                    SET is_closed = 1
+                    WHERE room_id = ?`,
 	}
 }
 
