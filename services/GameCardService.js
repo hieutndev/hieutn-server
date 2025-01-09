@@ -90,19 +90,24 @@ class GameCardService extends BaseService {
 
 	async getRoomMatchResults(roomId) {
 		try {
-			const matchResults = await this.query(gameCardSQL.getRoomMatchResults, [roomId])
+			const queryResults = await this.queryMany(gameCardSQL.getRoomMatchResults, [roomId, roomId])
 
-			if (!matchResults.isCompleted) {
+			if (!queryResults.isCompleted) {
 				return {
 					isCompleted: false,
-					message: matchResults.message,
+					message: queryResults.message,
 					results: [],
 				}
 			}
 
+			const [matchResults, twoPlayResults] = queryResults.results;
+
 			return {
 				isCompleted: true,
-				results: matchResults.results
+				results: {
+					matchResults,
+					twoPlayResults
+				}
 			}
 		} catch (error) {
 			return {
@@ -113,8 +118,6 @@ class GameCardService extends BaseService {
 	}
 
 	async insertNewResult(roomId, matchId, player1Result, player2Result, player3Result, player4Result, twoPlayResults) {
-
-
 		try {
 			if (Array.isArray(twoPlayResults) && twoPlayResults.length > 0) {
 				const mapQueryString = twoPlayResults.map((_r) => gameCardSQL.createTwoPlayResult).join(";")
@@ -145,10 +148,12 @@ class GameCardService extends BaseService {
 					results: [],
 				}
 			}
+
 			return {
 				isCompleted: true,
 				results: newResult.results
 			}
+
 		} catch (error) {
 			return {
 				isCompleted: false,
@@ -210,17 +215,31 @@ class GameCardService extends BaseService {
 		}
 	}
 
+	isHasTwoResults(twoPlayResults, playerIndex, matchIndex) {
+
+		const playerResults = matchIndex
+			? twoPlayResults.filter((_r) => _r.match_id === matchIndex && (_r.taker === playerIndex || _r.burner === playerIndex))
+			: twoPlayResults.filter((_r) => _r.taker === playerIndex || _r.burner === playerIndex)
+
+		playerResults
+
+		return {
+			isHasTwoResults: playerResults.length > 0,
+			results: playerResults
+		}
+	}
+
 	calculateTotalScore(playerIndex, roomConfig, matchHistory, matchIndex) {
-
 		try {
+			const { matchResults, twoPlayResults } = matchHistory;
+
 			const playerResults = matchIndex
-				? matchHistory.filter(match => match.player_index === playerIndex && match.match_id === matchIndex)
-				: matchHistory.filter(match => match.player_index === playerIndex)
+				? matchResults.filter(match => match.player_index === playerIndex && match.match_id === matchIndex)
+				: matchResults.filter(match => match.player_index === playerIndex);
 
-
-			return playerResults.reduce((score, _d) => {
+			const standardScore = playerResults.reduce((score, _d) => {
 				if (_d.rank === 1) {
-					const numsBurntOut = matchHistory.filter((match) => {
+					const numsBurntOut = matchResults.filter((match) => {
 						return match.match_id == _d.match_id && match.burnt_out === 1
 					});
 					if (numsBurntOut.length > 0) {
@@ -248,30 +267,35 @@ class GameCardService extends BaseService {
 				if (_d.swept_out) {
 					score += -roomConfig.swept_out - roomConfig.fourth;
 				}
-
-				if (_d.burnt_red_two) {
-					score += -roomConfig.red_two * _d.nums_red_two;
-				}
-
-				if (_d.burnt_black_two) {
-					score += -roomConfig.black_two * _d.nums_black_two;
-				}
-
-				if (_d.take_red_two) {
-					score += roomConfig.red_two * _d.nums_red_two;
-				}
-				if (_d.take_black_two) {
-					score += roomConfig.black_two * _d.nums_black_two;
-				}
 				return score;
 			}, 0);
+
+			const { isHasTwoResults, results } = this.isHasTwoResults(twoPlayResults, playerIndex, matchIndex);
+
+			if (isHasTwoResults) {
+				const twoPlayScore = results.reduce((score, _d) => {
+					if (_d.taker === playerIndex) {
+						score += _d.quantity * (_d.two_color === "red" ? roomConfig.red_two : roomConfig.black_two);
+					} else {
+						score += -(_d.quantity * (_d.two_color === "red" ? roomConfig.red_two : roomConfig.black_two));
+					}
+					return score;
+				}, 0);
+				return standardScore + twoPlayScore;
+			} else {
+				return standardScore;
+			}
 		} catch (error) {
-			console.log(error);
+			console.log(error)
+			throw new Error(error)
 		}
 	}
 
 	calculateMatrixScore(roomConfig, matchHistory) {
 		try {
+
+			const { matchResults, twoPlayResults } = matchHistory;
+
 			let matrixScore = [
 				[null, 0, 0, 0],
 				[0, null, 0, 0],
@@ -280,7 +304,7 @@ class GameCardService extends BaseService {
 			]
 
 			const getResultOfMatch = (matchId) => {
-				return matchHistory.filter((_m) => _m.match_id === matchId);
+				return matchResults.filter((_m) => _m.match_id === matchId);
 			}
 
 			const getPlayerIndexByRank = (rank, matchResults) => {
@@ -302,107 +326,77 @@ class GameCardService extends BaseService {
 				};
 			}
 
-			const hasBurntRedTwo = (matchResult) => {
-				return {
-					hasBurntRedTwo: matchResult.filter((_m) => _m.burnt_red_two === 1).length > 0,
-					burner: matchResult.filter((_m) => _m.burnt_red_two === 1).map((_) => _.player_index) ?? [],
-					taker: matchResult.filter((_m) => _m.take_red_two === 1).map((_) => _.player_index) ?? [],
-					numsOfTwo: matchResult.filter((_m) => _m.burnt_red_two === 1).map((_) => _.nums_red_two) ?? []
-				}
-			}
-			const hasBurntBlackTwo = (matchResult) => {
-				return {
-					hasBurntRedTwo: matchResult.filter((_m) => _m.burnt_black_two === 1).length > 0,
-					burner: matchResult.filter((_m) => _m.burnt_black_two === 1).map((_) => _.player_index) ?? [],
-					taker: matchResult.filter((_m) => _m.take_black_two === 1).map((_) => _.player_index) ?? [],
-					numsOfTwo: matchResult.filter((_m) => _m.burnt_black_two === 1).map((_) => _.nums_black_two) ?? []
-				}
-			}
-
-			Array.from({ length: (matchHistory.length / 4) }).forEach((_, index) => {
-				const matchResults = getResultOfMatch(index + 1);
-				if (isWinAllMatch(matchResults).isWinAllMatch) {
-					// const { winner } = isWinAllMatch(matchResults);
-					// matrixScore.forEach((playerScore, index) => {
-					// 	if (index === winner - 1) {
-					// 		playerScore.forEach((_, index) => {
-					//
-					// 			if (index !== winner - 1) {
-					// 				playerScore[index] += roomConfig.swept_out;
-					// 			}
-					// 		})
-					// 	} else {
-					// 		playerScore.forEach((_, index) => {
-					// 			if (index === winner - 1) {
-					// 				playerScore[index] += -roomConfig.swept_out;
-					// 			}
-					// 		})
-					// 	}
-					// })
-
-				} else if (isBurntOutMatch(matchResults).isBurntOutMatch) {
-					// const { winner, loser } = isBurntOutMatch(matchResults);
-					//
-					// matrixScore.forEach((playerScore, index) => {
-					// 	if (index === winner - 1) {
-					// 		playerScore.forEach((_, scoreIndex) => {
-					// 			if (loser.includes(scoreIndex + 1)) {
-					// 				playerScore[scoreIndex] += roomConfig.burnt_out;
-					// 			}
-					// 		})
-					// 	} else {
-					// 		playerScore.forEach((_, scoreIndex) => {
-					// 			if (loser.includes(index + 1) && scoreIndex === winner - 1) {
-					// 				playerScore[scoreIndex] += -roomConfig.burnt_out;
-					// 			}
-					// 		})
-					// 	}
-					// })
-				} else {
-					// const first = getPlayerIndexByRank(1, matchResults);
-					// const second = getPlayerIndexByRank(2, matchResults);
-					// const third = getPlayerIndexByRank(3, matchResults);
-					// const fourth = getPlayerIndexByRank(4, matchResults);
-					//
-					// matrixScore.forEach((playerScore, index) => {
-					// 	if (index === first - 1) {
-					// 		matrixScore[index][fourth - 1] += roomConfig.fourth;
-					// 		matrixScore[fourth - 1][first - 1] += roomConfig.first;
-					// 	}
-					//
-					// 	if (index === second - 1) {
-					// 		matrixScore[index][third - 1] += roomConfig.third;
-					// 		matrixScore[third - 1][second - 1] += roomConfig.second;
-					// 	}
-					// })
-				}
-
-				if (hasBurntRedTwo(matchResults).hasBurntRedTwo) {
-					const { burner, taker, numsOfTwo } = hasBurntRedTwo(matchResults);
-
+			Array.from({ length: (matchResults.length / 4) }).forEach((_, index) => {
+				const matchResult = getResultOfMatch(index + 1);
+				if (isWinAllMatch(matchResult).isWinAllMatch) {
+					const { winner } = isWinAllMatch(matchResults);
 					matrixScore.forEach((playerScore, index) => {
-						if (taker.includes(index + 1)) {
-							playerScore.forEach((_, burnerIndex) => {
-								if (burner.includes(burnerIndex + 1)) {
-									playerScore[burnerIndex] += roomConfig.red_two * numsOfTwo[burner.indexOf(burnerIndex + 1)];
+						if (index === winner - 1) {
+							playerScore.forEach((_, index) => {
+
+								if (index !== winner - 1) {
+									playerScore[index] += roomConfig.swept_out;
 								}
 							})
 						} else {
-							playerScore.forEach((_, takerIndex) => {
-								if (burner.includes(index + 1) && takerIndex === taker - 1) {
-									playerScore[takerIndex] += -(roomConfig.red_two * numsOfTwo[burner.indexOf(index + 1)]);
+							playerScore.forEach((_, index) => {
+								if (index === winner - 1) {
+									playerScore[index] += -roomConfig.swept_out;
 								}
 							})
 						}
 					})
-					console.log(matrixScore)
-				}
 
+				} else if (isBurntOutMatch(matchResult).isBurntOutMatch) {
+					const { winner, loser } = isBurntOutMatch(matchResults);
+
+					matrixScore.forEach((playerScore, index) => {
+						if (index === winner - 1) {
+							playerScore.forEach((_, scoreIndex) => {
+								if (loser.includes(scoreIndex + 1)) {
+									playerScore[scoreIndex] += roomConfig.burnt_out;
+								}
+							})
+						} else {
+							playerScore.forEach((_, scoreIndex) => {
+								if (loser.includes(index + 1) && scoreIndex === winner - 1) {
+									playerScore[scoreIndex] += -roomConfig.burnt_out;
+								}
+							})
+						}
+					})
+				} else {
+					const first = getPlayerIndexByRank(1, matchResults);
+					const second = getPlayerIndexByRank(2, matchResults);
+					const third = getPlayerIndexByRank(3, matchResults);
+					const fourth = getPlayerIndexByRank(4, matchResults);
+
+					matrixScore.forEach((playerScore, index) => {
+						if (index === first - 1) {
+							matrixScore[index][fourth - 1] += roomConfig.first;
+							matrixScore[fourth - 1][first - 1] += roomConfig.fourth;
+						}
+
+						if (index === second - 1) {
+							matrixScore[index][third - 1] += roomConfig.second;
+							matrixScore[third - 1][second - 1] += roomConfig.third;
+						}
+					})
+				}
 			})
-			console.log("winAll match", isWinAllMatch(getResultOfMatch(1)));
-			return 0
+
+			if (twoPlayResults.length > 0) {
+				twoPlayResults.forEach((twoPlay) => {
+					matrixScore[twoPlay.taker - 1][twoPlay.burner - 1] += twoPlay.quantity * (twoPlay.two_color === "red" ? roomConfig.red_two : roomConfig.black_two);
+					matrixScore[twoPlay.burner - 1][twoPlay.taker - 1] += -twoPlay.quantity * (twoPlay.two_color === "red" ? roomConfig.red_two : roomConfig.black_two);
+				})
+			}
+
+			console.log(matrixScore)
+			return matrixScore
 		} catch (error) {
 			console.log(error)
+			throw new Error(error)
 		}
 	}
 
@@ -438,7 +432,7 @@ class GameCardService extends BaseService {
 						},
 						matrixScore: this.calculateMatrixScore(roomConfig.results, matchHistory.results),
 					},
-					historyScoreBoard: Array.from({ length: (matchHistory.results.length / 4) })
+					historyScoreBoard: Array.from({ length: (matchHistory.results.matchResults.length / 4) })
 						.map((_, index) => [
 							this.calculateTotalScore(1, roomConfig.results, matchHistory.results, index + 1),
 							this.calculateTotalScore(2, roomConfig.results, matchHistory.results, index + 1),

@@ -19,7 +19,10 @@ const QueryString = {
                                     WHERE rooms.room_id = ?`,
 		getRoomMatchResults: `SELECT *
                               FROM gcard_match_results
-                              WHERE room_id = ?`,
+                              WHERE room_id = ?;
+        SELECT *
+        FROM two_play_results
+        WHERE room_id = ?`,
 
 		createNewRoom: `INSERT INTO gcard_rooms (created_by)
                         VALUES (?)`,
