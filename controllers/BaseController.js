@@ -1,4 +1,4 @@
-const mySLQ = require("../config/mysql")
+const mySLQ = require("../configs/mysql")
 
 class BaseController {
 	constructor() {
