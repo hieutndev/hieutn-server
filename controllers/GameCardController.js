@@ -54,7 +54,6 @@ class GameCardController extends BaseController {
 
 	async createNewRoom(req, res, next) {
 		try {
-
 			const { roomConfig } = req.body;
 
 			const { isCompleted, message, results } = await GameCardService.createNewRoom(roomConfig);

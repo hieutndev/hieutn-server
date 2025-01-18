@@ -51,6 +51,38 @@ const QueryString = {
 		closeRoom: `UPDATE gcard_rooms
                     SET is_closed = 1
                     WHERE room_id = ?`,
+	},
+	projectSQL: {
+		getAllProjects: `SELECT *
+                         FROM projects`,
+		getProjectDetails: `SELECT *
+                            FROM projects as proj
+                                     JOIN project_articles as article ON proj.id = article.project_id
+                            WHERE proj.id = ?`,
+
+		createNewProject: `INSERT INTO projects (project_fullname, project_shortname, start_date, end_date,
+                                                 short_description, project_thumbnail)
+                           VALUES (?, ?, ?, ?, ?, ?)`,
+		createProjectArticle: `INSERT INTO project_articles (project_id, article_body)
+                               VALUES (?, ?)`,
+		updateProjectDetails: `UPDATE projects
+                               SET project_fullname  = ?,
+                                   project_shortname = ?,
+                                   start_date        = ?,
+                                   end_date          = ?,
+                                   short_description = ?,
+                                   updated_at        = CURRENT_TIMESTAMP
+                               WHERE id = ?`,
+		updateArticle: `UPDATE project_articles
+                        SET article_body = ?
+                        WHERE project_id = ?`,
+		deleteProject: `DELETE
+                        FROM project_articles
+                        where project_id = ?;
+        DELETE
+        FROM projects
+        where id = ?;`
+
 	}
 }
 
