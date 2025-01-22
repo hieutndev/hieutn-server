@@ -99,14 +99,42 @@ const QueryString = {
                                      updated_at   = CURRENT_TIMESTAMP
                                  WHERE id = ?`,
 		softDeleteEducation: `UPDATE education
-                              SET is_deleted = 1
+                              SET is_deleted = 1,
+                                  updated_at = CURRENT_TIMESTAMP
                               WHERE id = ?`,
 		recoverEducation: `UPDATE education
-                           SET is_deleted = 0
+                           SET is_deleted = 0,
+                               updated_at = CURRENT_TIMESTAMP
                            WHERE id = ?`,
 		permanentDeleteEducation: `DELETE
                                    FROM education
                                    WHERE id = ?`
+	},
+	certificationSQL: {
+		getAllCertifications: `SELECT *
+                               FROM certification`,
+		getCertificationDetails: `SELECT *
+                                  FROM certification
+                                  WHERE id = ?`,
+		addNewCertification: `INSERT INTO certification (title, issued_by, issued_date, img_name)
+                              VALUES (?, ?, ?, ?)`,
+		updateCertification: `UPDATE certification
+                              SET title       = ?,
+                                  issued_by   = ?,
+                                  issued_date = ?,
+                                  updated_at  = CURRENT_TIMESTAMP
+                              WHERE id = ?`,
+		softDeleteCertification: `UPDATE certification
+                                  SET is_deleted = 1,
+                                      updated_at = CURRENT_TIMESTAMP
+                                  WHERE id = ?`,
+		recoverCertification: `UPDATE certification
+                               SET is_deleted = 0,
+                                   updated_at = CURRENT_TIMESTAMP
+                               WHERE id = ?`,
+		permanentDeleteCertification: `DELETE
+                                       FROM certification
+                                       WHERE id = ?`
 	}
 }
 

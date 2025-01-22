@@ -158,7 +158,7 @@ class ProjectService extends BaseService {
 	async updateProjectThumbnail(isChangeThumbnail, projectId, thumbnailFile) {
 		try {
 			if (isChangeThumbnail === "true") {
-				const projectDetails = await super.query(projectSQL.getProjectDetails, [projectId]);
+				const projectDetails = await this.getProjectDetails(projectId);
 
 				if (!projectDetails.isCompleted) {
 					return {
@@ -167,7 +167,7 @@ class ProjectService extends BaseService {
 					}
 				}
 
-				await s3Bucket.putObject(projectDetails.results[0].project_thumbnail, thumbnailFile, true);
+				await s3Bucket.putObject(projectDetails.results.project_thumbnail, thumbnailFile, true);
 
 			}
 			return {
