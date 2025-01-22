@@ -64,6 +64,7 @@ class ProjectController extends BaseController {
 			}
 
 			return super.createSuccessResponse(res, 200, Message.successGetAll("projects"), results)
+			// return super.createSuccessResponse(res, 400, Message.successGetAll("projects"), results)
 
 		} catch (error) {
 			return next({

@@ -82,7 +82,31 @@ const QueryString = {
         DELETE
         FROM projects
         where id = ?;`
-
+	},
+	educationSQL: {
+		getAllEducations: `SELECT *
+                           FROM education`,
+		getEducationDetails: `SELECT *
+                              FROM education
+                              WHERE id = ?`,
+		addNewEducation: `INSERT INTO education (title, organization, time_start, time_end)
+                          VALUES (?, ?, ?, ?)`,
+		updateEducationDetails: `UPDATE education
+                                 SET title        = ?,
+                                     organization = ?,
+                                     time_start   = ?,
+                                     time_end     = ?,
+                                     updated_at   = CURRENT_TIMESTAMP
+                                 WHERE id = ?`,
+		softDeleteEducation: `UPDATE education
+                              SET is_deleted = 1
+                              WHERE id = ?`,
+		recoverEducation: `UPDATE education
+                           SET is_deleted = 0
+                           WHERE id = ?`,
+		permanentDeleteEducation: `DELETE
+                                   FROM education
+                                   WHERE id = ?`
 	}
 }
 
