@@ -19,7 +19,7 @@ class EducationController extends BaseController {
 				})
 			}
 
-			return super.createSuccessResponse(res, 200, Message.successGetAll("education"), results)
+			return super.createSuccessResponse(res, 200, message, results)
 
 		} catch (error) {
 			return next({
@@ -43,7 +43,7 @@ class EducationController extends BaseController {
 				})
 			}
 
-			return super.createSuccessResponse(res, 200, Message.successGetOne("education"), results)
+			return super.createSuccessResponse(res, 200, message, results)
 
 		} catch (error) {
 			return next({
@@ -64,7 +64,7 @@ class EducationController extends BaseController {
 				})
 			}
 
-			return super.createSuccessResponse(res, 200, Message.successCreate("education"), results)
+			return super.createSuccessResponse(res, 200, message, results)
 		} catch (error) {
 			return next({
 				status: 500,
@@ -90,7 +90,7 @@ class EducationController extends BaseController {
 				})
 			}
 
-			return super.createSuccessResponse(res, 200, Message.successUpdate("education"))
+			return super.createSuccessResponse(res, 200, message)
 
 		} catch (error) {
 			return next({

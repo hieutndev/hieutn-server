@@ -41,7 +41,7 @@ class ProjectController extends BaseController {
 
 			await s3Bucket.putObject(imageName, req.file, true)
 
-			return super.createSuccessResponse(res, 200, Message.successCreate("project"), results)
+			return super.createSuccessResponse(res, 200, message, results)
 
 		} catch (error) {
 			return next({
@@ -63,8 +63,8 @@ class ProjectController extends BaseController {
 				})
 			}
 
-			return super.createSuccessResponse(res, 200, Message.successGetAll("projects"), results)
-			// return super.createSuccessResponse(res, 400, Message.successGetAll("projects"), results)
+			return super.createSuccessResponse(res, 200, message, results)
+
 
 		} catch (error) {
 			return next({
@@ -93,7 +93,7 @@ class ProjectController extends BaseController {
 				})
 			}
 
-			return super.createSuccessResponse(res, 200, Message.successGetOne("project"), results)
+			return super.createSuccessResponse(res, 200, message, results)
 
 		} catch (error) {
 			return next({
@@ -118,7 +118,7 @@ class ProjectController extends BaseController {
 			}
 
 
-			return super.createSuccessResponse(res, 200, Message.successUpdate("project details"))
+			return super.createSuccessResponse(res, 200, message)
 
 		} catch (error) {
 			return next({
@@ -142,7 +142,7 @@ class ProjectController extends BaseController {
 				})
 			}
 
-			return super.createSuccessResponse(res, 200, Message.successDelete("project"))
+			return super.createSuccessResponse(res, 200, message)
 
 		} catch (error) {
 			return next({

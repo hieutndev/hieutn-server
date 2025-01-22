@@ -1,6 +1,7 @@
 const BaseService = require("./BaseService");
 const { projectSQL } = require("../utils/SQLQueryString")
 const s3Bucket = require("../configs/s3Bucket");
+const Message = require("../utils/ResponseMessage");
 
 class ProjectService extends BaseService {
 
@@ -77,6 +78,7 @@ class ProjectService extends BaseService {
 
 			return {
 				isCompleted: true,
+				message: Message.successCreate("project"),
 				results: {
 					newProjectId: createProject.results.insertId
 				}
@@ -103,6 +105,7 @@ class ProjectService extends BaseService {
 
 			return {
 				isCompleted: true,
+				message: Message.successGetAll("projects"),
 				results: listProjects.results
 			}
 		} catch (error) {
@@ -136,6 +139,7 @@ class ProjectService extends BaseService {
 
 			return {
 				isCompleted: true,
+				message: Message.successGetOne("project"),
 				results: {
 					...projectDetails.results[0],
 					project_thumbnail: getProjectThumbnailUrl
@@ -242,7 +246,8 @@ class ProjectService extends BaseService {
 			}
 
 			return {
-				isCompleted: true
+				isCompleted: true,
+				message: Message.successUpdate("project details")
 			}
 
 		} catch (error) {
@@ -269,7 +274,8 @@ class ProjectService extends BaseService {
 			await Promise.all([s3Bucket.deleteObject(projectDetails.results[0].project_thumbnail), super.queryMany(projectSQL.deleteProject, [projectId, projectId])]);
 
 			return {
-				isCompleted: true
+				isCompleted: true,
+				message: Message.successDelete("project")
 			}
 
 

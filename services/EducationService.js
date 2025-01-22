@@ -23,6 +23,7 @@ class EducationService extends BaseService {
 
 			return {
 				isCompleted: true,
+				message: Message.successGetAll("education"),
 				results: listEducation.results,
 			}
 
@@ -49,6 +50,7 @@ class EducationService extends BaseService {
 
 			return {
 				isCompleted: true,
+				message: Message.successGetOne("education"),
 				results: getEducationDetails.results[0]
 			}
 
@@ -75,6 +77,7 @@ class EducationService extends BaseService {
 
 			return {
 				isCompleted: true,
+				message: Message.successCreate("education"),
 				results: {
 					newEducationId: addNewEducationStatus.results.insertId
 				}
@@ -101,6 +104,7 @@ class EducationService extends BaseService {
 
 			return ({
 				isCompleted: true,
+				message: Message.successUpdate("education"),
 			})
 
 
