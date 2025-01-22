@@ -135,6 +135,33 @@ const QueryString = {
 		permanentDeleteCertification: `DELETE
                                        FROM certification
                                        WHERE id = ?`
+	},
+	employmentSQL: {
+		getAllEmployments: `SELECT *
+                            FROM employment`,
+		getEmploymentDetails: `SELECT *
+                               FROM employment
+                               WHERE id = ?`,
+		addNewEmployment: `INSERT INTO employment (title, organization, time_start, time_end)
+                           VALUES (?, ?, ?, ?)`,
+		updateEmployment: `UPDATE employment
+                           SET title        = ?,
+                               organization = ?,
+                               time_start   = ?,
+                               time_end     = ?,
+                               updated_at   = CURRENT_TIMESTAMP
+                           WHERE id = ?`,
+		softDeleteEmployment: `UPDATE employment
+                               SET is_deleted = 1,
+                                   updated_at = CURRENT_TIMESTAMP
+                               WHERE id = ?`,
+		recoverEmployment: `UPDATE employment
+                            SET is_deleted = 0,
+                                updated_at = CURRENT_TIMESTAMP
+                            WHERE id = ?`,
+		permanentDeleteEmployment: `DELETE
+                                    FROM employment
+                                    WHERE id = ?`
 	}
 }
 
