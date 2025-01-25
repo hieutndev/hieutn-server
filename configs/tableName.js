@@ -8,6 +8,7 @@ const TABLE_NAME = {
 		}
 	},
 	PORTFOLIO: {
+		ACCOUNT: "accounts",
 		EDUCATION: "education",
 		CERTIFICATION: "certification",
 		EMPLOYMENT: "employment",

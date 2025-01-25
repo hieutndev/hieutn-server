@@ -17,6 +17,6 @@ router.use('/projects', ProjectRoutes);
 router.use('/education', EducationRoutes);
 router.use('/certification', CertificationRoutes);
 router.use('/employment', EmploymnetRoutes);
-router.use('/account', AccountRoutes);
+router.use('/accounts', AccountRoutes);
 
 module.exports = router;

@@ -2,8 +2,9 @@ const express = require('express');
 const router = express.Router();
 
 const EducationController = require('../controllers/EducationController');
+const { accessTokenChecker } = require("../middlewares/token-middlewares");
 
-router.get('/', EducationController.getListEducation);
+router.get('/', accessTokenChecker, EducationController.getListEducation);
 router.post("/", EducationController.addNewEducation);
 router.get("/:educationId", EducationController.getEducationDetails);
 router.patch("/:educationId", EducationController.updateEducationDetails);

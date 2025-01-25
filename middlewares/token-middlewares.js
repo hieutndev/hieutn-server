@@ -1,0 +1,46 @@
+const jwt = require('jsonwebtoken');
+
+const AccountService = require('../services/AccountService');
+const { verifyToken } = require("../utils/jwt-helpers");
+
+async function refreshTokenChecker(req, res, next) {
+	const token = req.headers['x-rftk'];
+
+	console.log(token);
+
+	if (!token) {
+		return res.status(401).json({
+			status: "failure",
+			message: "Unauthorized"
+		});
+	}
+
+	const { user_id } = await verifyToken(token);
+
+	req.user_id = user_id;
+	req.refresh_token = token;
+
+	return next();
+}
+
+async function accessTokenChecker(req, res, next) {
+	const token = req.headers['authorization'] ? req.headers['authorization'].split(' ')[1] : null;
+
+	console.log(token);
+
+	if (!token || token === "null" || token === "undefined") {
+		return res.status(401).json({
+			status: "failure",
+			message: "Unauthorized"
+		});
+	}
+
+	const { user_id, role } = await verifyToken(token);
+
+	req.user_id = user_id;
+	req.role = role;
+
+	return next();
+}
+
+module.exports = { refreshTokenChecker, accessTokenChecker }

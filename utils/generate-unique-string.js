@@ -1,6 +1,6 @@
 const crypto = require("crypto");
-const randomUniqueString = () => {
-	return crypto.randomBytes(32).toString("hex");
+const randomUniqueString = (size = 32) => {
+	return crypto.randomBytes(size).toString("hex");
 }
 
 module.exports = randomUniqueString;

@@ -162,6 +162,19 @@ const QueryString = {
 		permanentDeleteEmployment: `DELETE
                                     FROM employment
                                     WHERE id = ?`
+	},
+	accountSQL: {
+		signUp: `INSERT INTO accounts (username, email, password)
+                 VALUES (?, ?, ?)`,
+		updateNewRefreshToken: `UPDATE accounts
+                                SET refresh_token = ?
+                                WHERE user_id = ?`,
+		getAccountByEmail: `SELECT *
+                            FROM accounts
+                            WHERE email = ?`,
+		getAccountById: `SELECT *
+                         FROM accounts
+                         WHERE user_id = ?`,
 	}
 }
 
