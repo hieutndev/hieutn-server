@@ -6,14 +6,16 @@ const storage = multer.memoryStorage();
 const upload = multer({ storage: storage })
 
 const CertificationController = require('../controllers/CertificationController');
+const { accessTokenChecker } = require("../middlewares/token-middlewares");
+const { requireRole } = require("../middlewares/role-checker");
 
 router.get("/", CertificationController.getAll);
-router.post("/", upload.single("cert_image"), CertificationController.addNewCertification);
+router.post("/", accessTokenChecker, requireRole(1), upload.single("cert_image"), CertificationController.addNewCertification);
 router.get("/:certId", CertificationController.getCertificationDetails);
-router.patch("/:certId", upload.single("cert_image"), CertificationController.updateCertification);
-router.patch("/:certId/delete", CertificationController.softDeleteCertification);
-router.patch("/:certId/recover", CertificationController.recoverCertification);
-router.delete("/:certId", CertificationController.permanentDeleteCertification);
+router.patch("/:certId", accessTokenChecker, requireRole(1), upload.single("cert_image"), CertificationController.updateCertification);
+router.patch("/:certId/delete", accessTokenChecker, requireRole(1), CertificationController.softDeleteCertification);
+router.patch("/:certId/recover", accessTokenChecker, requireRole(1), CertificationController.recoverCertification);
+router.delete("/:certId", accessTokenChecker, requireRole(1), CertificationController.permanentDeleteCertification);
 
 
 module.exports = router;
