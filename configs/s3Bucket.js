@@ -20,11 +20,11 @@ class S3Bucket {
 		})
 	}
 
-	async putObject(objectName, { buffer, mimetype }, isResize = false) {
+	async putObject(objectName, { buffer, mimetype }, isResize = false, fit = "contain") {
 		try {
 			let resizeBuffer;
 			if (isResize) {
-				resizeBuffer = await resizeImage(buffer, 1920, 1080);
+				resizeBuffer = await resizeImage(buffer, 1920, 1080, fit);
 				console.log(isResize ? "resizeBuffer" : "buffer")
 			}
 
@@ -37,6 +37,8 @@ class S3Bucket {
 				Body: isResize ? resizeBuffer : buffer,
 				ContentType: mimetype
 			}
+
+			console.log("objectName", objectName);
 
 
 			const command = new PutObjectCommand(params);

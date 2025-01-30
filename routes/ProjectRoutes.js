@@ -12,6 +12,8 @@ const { requireRole } = require("../middlewares/role-checker");
 
 router.get('/', ProjectController.getAllProjects);
 router.post('/', accessTokenChecker, requireRole(1), upload.single("project_thumbnail"), ProjectController.createNewProject);
+router.get("/groups", ProjectController.getListProjectGroups);
+router.post("/groups", ProjectController.createNewProjectGroups);
 
 router.get("/:projectId", ProjectController.getProjectDetails)
 router.patch("/:projectId", accessTokenChecker, requireRole(1), upload.single("project_thumbnail"), ProjectController.updateProjectDetails);

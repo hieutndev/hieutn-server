@@ -56,6 +56,44 @@ class AccountService extends BaseService {
 		}
 	}
 
+	async hasAccount(searchValue, searchBy) {
+
+		if (!["email", "id"].includes(searchBy)) {
+			throw new Error("searchBy must be either 'email' or 'id'")
+		}
+
+		try {
+
+			const account = searchBy === "email" ? await this.getAccountByEmail(searchValue) : await this.getAccountByUserId(searchValue);
+
+			if (!account.isCompleted) {
+				return {
+					isCompleted: false,
+					message: account.message
+				}
+			}
+
+			if (account.results.length === 0) {
+				return {
+					isCompleted: false,
+					message: searchBy === "email" ? Message.emailNotFound : Message.userIdNotFound
+				}
+			}
+
+			return {
+				isCompleted: true,
+				results: account.results[0]
+			}
+
+		} catch (error) {
+			return {
+				isCompleted: false,
+				message: error,
+			}
+		}
+
+	}
+
 	async hashPassword(password) {
 		return await bcrypt.hash(password, Number(process.env.PWD_SECRET));
 	}
@@ -229,7 +267,132 @@ class AccountService extends BaseService {
 		}
 	}
 
+	async getListAccounts() {
+		try {
 
+			const listAccounts = await super.query(accountSQL.getListAccounts);
+
+			if (!listAccounts.isCompleted) {
+				return {
+					isCompleted: false,
+					message: listAccounts.message,
+				}
+			}
+
+			return {
+				isCompleted: true,
+				results: listAccounts.results,
+			}
+
+		} catch (error) {
+			return {
+				isCompleted: false,
+				message: error
+			}
+		}
+	}
+
+	async blockAccount(userId) {
+		try {
+
+			const accountStatus = await this.hasAccount(userId, "id");
+
+			if (!accountStatus.isCompleted) {
+				return {
+					isCompleted: false,
+					message: accountStatus.message,
+				}
+			}
+
+			if (accountStatus.results.is_active === 0) {
+				return {
+					isCompleted: false,
+					message: Message.alreadyBlocked,
+				}
+			}
+
+			const blockAccount = await super.query(accountSQL.blockAccount, [userId]);
+
+			if (!blockAccount.isCompleted) {
+				return {
+					isCompleted: false,
+					message: blockAccount.message,
+				}
+			}
+
+			return {
+				isCompleted: true,
+				message: Message.successBlock
+			}
+		} catch (error) {
+			return {
+				isCompleted: false,
+			}
+		}
+	}
+
+	async unBlockAccount(userId) {
+		try {
+			const accountStatus = await this.hasAccount(userId, "id");
+
+			if (!accountStatus.isCompleted) {
+				return {
+					isCompleted: false,
+					message: accountStatus.message,
+				}
+			}
+
+			if (accountStatus.results.is_active === 1) {
+				return {
+					isCompleted: false,
+					message: Message.accountNotBlocked,
+				}
+			}
+
+			const unBlockAccount = await super.query(accountSQL.unBlockAccount, [userId]);
+
+			if (!unBlockAccount.isCompleted) {
+				return {
+					isCompleted: false,
+					message: unBlockAccount.message,
+				}
+			}
+
+			return {
+				isCompleted: true,
+				message: Message.successUnblock
+			}
+
+		} catch (error) {
+			return {
+				isCompleted: false,
+			}
+		}
+	}
+
+	async updateAccountStatus(accountId, action) {
+		try {
+
+			if (!["block", "unblock"].includes(action)) {
+				return {
+					isCompleted: false,
+					message: "'action' must be either 'block' or 'unblock'",
+				}
+			}
+
+			if (action === "block") {
+				return await this.blockAccount(accountId)
+			} else {
+				return await this.unBlockAccount(accountId)
+			}
+
+		} catch (error) {
+			return {
+				isCompleted: false,
+				message: error,
+			}
+		}
+	}
 }
 
 module.exports = new AccountService()

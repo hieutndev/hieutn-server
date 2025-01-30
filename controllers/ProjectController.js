@@ -19,7 +19,8 @@ class ProjectController extends BaseController {
 				start_date,
 				end_date,
 				short_description,
-				article_body
+				article_body,
+				group_id
 			} = req.body;
 
 			const imageName = generateUniqueString();
@@ -29,7 +30,7 @@ class ProjectController extends BaseController {
 				isCompleted,
 				message,
 				results
-			} = await ProjectService.createNewProject(project_fullname, project_shortname, start_date, end_date, short_description, imageName, article_body)
+			} = await ProjectService.createNewProject(project_fullname, project_shortname, start_date, end_date, short_description, imageName, article_body, group_id)
 
 			if (!isCompleted) {
 				return next({
@@ -38,8 +39,6 @@ class ProjectController extends BaseController {
 					results: [],
 				})
 			}
-
-			await s3Bucket.putObject(imageName, req.file, true)
 
 			return super.createSuccessResponse(res, 200, message, results)
 
@@ -143,6 +142,53 @@ class ProjectController extends BaseController {
 			}
 
 			return super.createSuccessResponse(res, 200, message)
+
+		} catch (error) {
+			return next({
+				status: 500,
+				error,
+			})
+		}
+	}
+
+	async getListProjectGroups(req, res, next) {
+		try {
+
+			const { isCompleted, message, results } = await ProjectService.getAllProjectGroups();
+
+			if (!isCompleted) {
+				return next({
+					status: 404,
+					message,
+				})
+			}
+
+			return super.createSuccessResponse(res, 200, message, results)
+
+		} catch (error) {
+			return next({
+				status: 500,
+				error,
+			})
+		}
+	}
+
+	async createNewProjectGroups(req, res, next) {
+		try {
+
+
+			const { isCompleted, message } = await ProjectService.createNewProjectGroup(req.body);
+
+
+			if (!isCompleted) {
+				return next({
+					status: 404,
+					message,
+				})
+			}
+
+			return super.createSuccessResponse(res, 200, message)
+
 
 		} catch (error) {
 			return next({

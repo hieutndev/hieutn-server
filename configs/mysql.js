@@ -34,6 +34,7 @@ class MySQL {
 			}
 
 
+			console.log(sqlString.split(";"))
 			if (sqlString.includes(";") && sqlString.split(";").length >= 2) {
 				return {
 					isCompleted: false,
@@ -54,9 +55,18 @@ class MySQL {
 
 		} catch (error) {
 
-			console.log("Error in mysql queryOne", error);
+			console.log("Error in mysql queryOne", error.code);
 
 			if (typeof error !== 'string') {
+
+				if (error.code === "ER_DUP_ENTRY") {
+					return {
+						isCompleted: false,
+						message: "Duplicate data",
+						results: [],
+					}
+				}
+
 				return {
 					isCompleted: false,
 					message: error.message,

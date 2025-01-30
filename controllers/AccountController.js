@@ -77,6 +77,54 @@ class AccountController extends BaseController {
 		}
 	}
 
+	async getAllUsers(req, res, next) {
+		try {
+
+			const { isCompleted, message, results } = await AccountService.getListAccounts();
+
+			if (!isCompleted) {
+				return next({
+					status: 400,
+					message
+				})
+			}
+
+			return super.createSuccessResponse(res, 200, message, results)
+
+		} catch (error) {
+			return next({
+				status: 500,
+				error
+			})
+		}
+	}
+
+	async updateAccountActiveStatus(req, res, next) {
+		try {
+
+			const { accountId } = req.params;
+
+			const { action } = req.body
+
+			const { isCompleted, message } = await AccountService.updateAccountStatus(accountId, action)
+
+			if (!isCompleted) {
+				return next({
+					status: 400,
+					message
+				})
+			}
+
+			return super.createSuccessResponse(res, 200, message)
+
+
+		} catch (error) {
+			return next({
+				status: 500,
+				error,
+			})
+		}
+	}
 }
 
 module.exports = new AccountController();

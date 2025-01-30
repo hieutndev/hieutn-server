@@ -9,9 +9,9 @@ class ProjectService extends BaseService {
 		super();
 	}
 
-	async insertProject(project_fullname, project_shortname, start_date, end_date, short_description, project_thumbnail) {
+	async insertProject(project_fullname, project_shortname, start_date, end_date, short_description, project_thumbnail, group_id) {
 		try {
-			const insertStatus = await super.query(projectSQL.createNewProject, [project_fullname, project_shortname, start_date, end_date, short_description, project_thumbnail]);
+			const insertStatus = await super.query(projectSQL.createNewProject, [project_fullname, project_shortname, start_date, end_date, short_description, project_thumbnail, group_id]);
 
 			if (!insertStatus.isCompleted) {
 				return {
@@ -56,9 +56,9 @@ class ProjectService extends BaseService {
 		}
 	}
 
-	async createNewProject(project_fullname, project_shortname, start_date, end_date, short_description, project_thumbnail, article_body) {
+	async createNewProject(project_fullname, project_shortname, start_date, end_date, short_description, project_thumbnail, article_body, group_id) {
 		try {
-			const createProject = await this.insertProject(project_fullname, project_shortname, start_date, end_date, short_description, project_thumbnail);
+			const createProject = await this.insertProject(project_fullname, project_shortname, start_date, end_date, short_description, project_thumbnail, group_id);
 
 			if (!createProject.isCompleted) {
 				return {
@@ -75,6 +75,8 @@ class ProjectService extends BaseService {
 					message: createArticle.message,
 				}
 			}
+
+			await s3Bucket.putObject(imageName, req.file, true, "cover")
 
 			return {
 				isCompleted: true,
@@ -142,7 +144,8 @@ class ProjectService extends BaseService {
 				message: Message.successGetOne("project"),
 				results: {
 					...projectDetails.results[0],
-					project_thumbnail: getProjectThumbnailUrl
+					project_thumbnail: getProjectThumbnailUrl,
+					project_thumbnail_name: projectDetails.results[0].project_thumbnail
 				}
 			}
 		} catch (error) {
@@ -167,7 +170,7 @@ class ProjectService extends BaseService {
 					}
 				}
 
-				await s3Bucket.putObject(projectDetails.results.project_thumbnail, thumbnailFile, true);
+				await s3Bucket.putObject(projectDetails.results.project_thumbnail_name, thumbnailFile, true, "cover");
 
 			}
 			return {
@@ -215,12 +218,13 @@ class ProjectService extends BaseService {
 		end_date,
 		short_description,
 		article_body,
+		group_id,
 		isChangeThumbnail,
 		isChangeArticle,
 	}, thumbnailFile) {
 		try {
 
-			const updateProjectDetails = await super.query(projectSQL.updateProjectDetails, [project_fullname, project_shortname, start_date, end_date, short_description, projectId]);
+			const updateProjectDetails = await super.query(projectSQL.updateProjectDetails, [project_fullname, project_shortname, start_date, end_date, short_description, group_id !== 'null' ? group_id : null, projectId]);
 
 			if (!updateProjectDetails.isCompleted) {
 				return {
@@ -286,6 +290,44 @@ class ProjectService extends BaseService {
 			}
 		}
 	}
+
+	async getAllProjectGroups() {
+		try {
+			const listProjectGroups = await super.query(projectSQL.getListProjectGroups);
+
+			return {
+				isCompleted: listProjectGroups.isCompleted,
+				message: listProjectGroups.isCompleted ? Message.successGetAll("project groups") : listProjectGroups.message,
+				results: listProjectGroups.results
+			}
+		} catch (error) {
+			return {
+				isCompleted: false,
+				message: error
+			}
+		}
+	}
+
+	async createNewProjectGroup({ newGroupTitle }) {
+
+		try {
+
+			const createNewGroup = await super.query(projectSQL.createNewProjectGroup, [newGroupTitle]);
+
+			return {
+				isCompleted: createNewGroup.isCompleted,
+				message: createNewGroup.isCompleted ? Message.successCreate("project group") : createNewGroup.message,
+			}
+
+		} catch (error) {
+			return {
+				isCompleted: false,
+				message: error,
+			}
+		}
+
+	}
 }
+
 
 module.exports = new ProjectService();

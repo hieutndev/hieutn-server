@@ -17,6 +17,11 @@ const ResponseMessage = {
 	successGetNewAccessToken: `Successfully generated new access token`,
 	passwordNotMatch: "Wrong password",
 	signInSuccess: "Successfully signed in",
+	successBlock: "Successfully blocked account",
+	successUnblock: "Successfully unblocked account",
+	alreadyBlocked: "Account is already blocked",
+	accountNotBlocked: "Account is not blocked",
+	successLogout: "Successfully logged out",
 }
 
 module.exports = ResponseMessage;

@@ -7,6 +7,7 @@ const EducationRoutes = require('./EducationRoutes');
 const CertificationRoutes = require('./CertificationRoutes');
 const EmploymentRoutes = require('./EmploymentRoutes');
 const AccountRoutes = require('./AccountRoutes');
+const AppRoutes = require('./AppRoutes');
 
 
 router.use('/game-card', GameCardRoutes);
@@ -19,5 +20,6 @@ router.use('/education', EducationRoutes);
 router.use('/certification', CertificationRoutes);
 router.use('/employment', EmploymentRoutes);
 router.use('/accounts', AccountRoutes);
+router.use('/apps', AppRoutes);
 
 module.exports = router;

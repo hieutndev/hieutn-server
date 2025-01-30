@@ -53,16 +53,27 @@ const QueryString = {
                     WHERE room_id = ?`,
 	},
 	projectSQL: {
-		getAllProjects: `SELECT *
-                         FROM projects`,
+		getAllProjects: `SELECT pj.id,
+                                pj.project_fullname,
+                                pj.project_shortname,
+                                pj.start_date,
+                                pj.end_date,
+                                pj.short_description,
+                                pj.project_thumbnail,
+                                pj.created_at,
+                                pj.updated_at,
+                                pj.group_id,
+                                pg.group_title
+                         FROM hieutndb.projects as pj
+                                  left join project_groups as pg on pj.group_id = pg.group_id`,
 		getProjectDetails: `SELECT *
                             FROM projects as proj
                                      JOIN project_articles as article ON proj.id = article.project_id
                             WHERE proj.id = ?`,
 
 		createNewProject: `INSERT INTO projects (project_fullname, project_shortname, start_date, end_date,
-                                                 short_description, project_thumbnail)
-                           VALUES (?, ?, ?, ?, ?, ?)`,
+                                                 short_description, project_thumbnail, group_id)
+                           VALUES (?, ?, ?, ?, ?, ?, ?)`,
 		createProjectArticle: `INSERT INTO project_articles (project_id, article_body)
                                VALUES (?, ?)`,
 		updateProjectDetails: `UPDATE projects
@@ -71,6 +82,7 @@ const QueryString = {
                                    start_date        = ?,
                                    end_date          = ?,
                                    short_description = ?,
+                                   group_id          = ?,
                                    updated_at        = CURRENT_TIMESTAMP
                                WHERE id = ?`,
 		updateArticle: `UPDATE project_articles
@@ -81,7 +93,18 @@ const QueryString = {
                         where project_id = ?;
         DELETE
         FROM projects
-        where id = ?;`
+        where id = ?;`,
+		getListProjectGroups: `SELECT *
+                               FROM project_groups`,
+		createNewProjectGroup: `INSERT INTO project_groups (group_title)
+                                VALUES (?)`,
+		updateProjectGroup: `UPDATE project_groups
+                             SET group_title = ?
+                             WHERE group_id = ?`,
+		deleteProjectGroup: `DELETE
+                             FROM project_groups
+                             WHERE group_id = ?`,
+
 	},
 	educationSQL: {
 		getAllEducations: `SELECT *
@@ -175,7 +198,36 @@ const QueryString = {
 		getAccountById: `SELECT *
                          FROM accounts
                          WHERE user_id = ?`,
-	}
+		getListAccounts: `SELECT *
+                          FROM accounts`,
+		blockAccount: `UPDATE accounts
+                       SET is_active = 0
+                       WHERE user_id = ?`,
+		unBlockAccount: `UPDATE accounts
+                         SET is_active = 1
+                         WHERE user_id = ?`,
+	},
+	appSQL: {
+		getAllApps: `SELECT *
+                     FROM apps`,
+		getAppInformation: `SELECT *
+                            FROM apps
+                            WHERE app_id = ?`,
+		addNewApp: `INSERT INTO apps (app_name, app_icon, app_link)
+                    VALUES (?, ?, ?)`,
+
+		updateAppInformation: `UPDATE apps
+                               SET app_name = ?,
+                                   app_link = ?
+                               WHERE app_id = ?`,
+		updateAppDisplayStatus: `UPDATE apps
+                                 SET is_hide = ?
+                                 WHERE app_id = ?`,
+		deleteApp: `DELETE
+                    FROM apps
+                    WHERE app_id = ?`,
+
+	},
 }
 
 module.exports = QueryString;
