@@ -54,8 +54,9 @@ app.use(function (err, req, res, next) {
 	});
 });
 
+console.log(process.env.NODE_ENV === "production" ? process.env.PRODUCTION_PORT : process.env.LOCAL_PORT)
 
-const port = process.env.PORT || 3000
+const port = (process.env.NODE_ENV === "production" ? process.env.PRODUCTION_PORT : process.env.LOCAL_PORT) || 3000
 app.set('port', port);
 
 const server = http.createServer(app);

@@ -13,13 +13,13 @@ class MySQL {
 	}
 
 	async createPromiseConnection(isMultipleStatements = false) {
-		return await mysqlPromise.createConnection({
-			host: process.env.MYSQL_HOST,
-			user: process.env.MYSQL_USER,
-			password: process.env.MYSQL_PASSWORD,
-			database: process.env.MYSQL_DATABASE,
+		return mysqlPromise.createConnection({
+			host: process.env.PRODUCTION_MYSQL_HOST,
+			user: process.env.PRODUCTION_MYSQL_USER,
+			password: process.env.PRODUCTION_MYSQL_PASSWORD,
+			database: process.env.PRODUCTION_MYSQL_DATABASE,
 			multipleStatements: isMultipleStatements
-		})
+		});
 	}
 
 	async query(sqlString, values = []) {
@@ -32,7 +32,7 @@ class MySQL {
 				}
 
 			}
-			
+
 			if (sqlString.includes(";") && sqlString.split(";").length >= 2) {
 				return {
 					isCompleted: false,
