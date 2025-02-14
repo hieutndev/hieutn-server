@@ -19,7 +19,7 @@ class GameCardController extends BaseController {
 				});
 			}
 
-			return super.createSuccessResponse(res, 200, Message.successGetAll(`${results.length} Game Rooms`), results);
+			return super.createSuccessResponse(res, 200, message, results);
 
 		} catch (error) {
 			return next({
@@ -33,7 +33,7 @@ class GameCardController extends BaseController {
 		try {
 			const { roomId } = req.params;
 
-			const { isCompleted, message, results } = await GameCardService.getRoomDetails(roomId);
+			const { isCompleted, message, results } = await GameCardService.getRoomInfo(roomId);
 
 			if (isCompleted === false) {
 				return next({
@@ -56,7 +56,7 @@ class GameCardController extends BaseController {
 		try {
 			const { roomConfig } = req.body;
 
-			const { isCompleted, message, results } = await GameCardService.createNewRoom(roomConfig);
+			const { isCompleted, message, results } = await GameCardService.createNewRoom(req.user_id, roomConfig);
 
 			if (isCompleted === false) {
 				return next({
@@ -79,7 +79,7 @@ class GameCardController extends BaseController {
 
 			const { roomId } = req.params;
 
-			const { isCompleted, message, results } = await GameCardService.getRoomMatchResults(roomId);
+			const { isCompleted, message, results } = await GameCardService.getListPlayHistory(roomId);
 
 			if (isCompleted === false) {
 				return next({ status: 400, message });
@@ -97,9 +97,9 @@ class GameCardController extends BaseController {
 
 			const { roomId } = req.params;
 
-			const { matchId, player1Result, player2Result, player3Result, player4Result, twoPlayResults } = req.body;
+			const { player1Result, player2Result, player3Result, player4Result, twoPlayResults } = req.body;
 
-			const insertNewResult = await GameCardService.insertNewResult(roomId, matchId, player1Result, player2Result, player3Result, player4Result, twoPlayResults);
+			const insertNewResult = await GameCardService.insertNewResult(roomId, player1Result, player2Result, player3Result, player4Result, twoPlayResults);
 
 			if (insertNewResult.isCompleted === false) {
 				return next({
@@ -108,7 +108,7 @@ class GameCardController extends BaseController {
 				});
 			}
 
-			const roomMatchResults = await GameCardService.getRoomMatchResults(roomId);
+			const roomMatchResults = await GameCardService.getListPlayHistory(roomId);
 
 			if (roomMatchResults.isCompleted === false) {
 				return next({
@@ -122,7 +122,6 @@ class GameCardController extends BaseController {
 
 
 		} catch (error) {
-			console.log(error);
 			return next({ status: 500, error });
 		}
 	}
@@ -142,7 +141,7 @@ class GameCardController extends BaseController {
 				});
 			}
 
-			const roomDetails = await GameCardService.getRoomDetails(roomId);
+			const roomDetails = await GameCardService.getRoomInfo(roomId);
 
 			if (!roomDetails.isCompleted) {
 				return next({
@@ -161,7 +160,7 @@ class GameCardController extends BaseController {
 		try {
 			const { roomId } = req.params;
 
-			const roomResults = await GameCardService.getScoreBoard(roomId);
+			const roomResults = await GameCardService.getRoomResults(roomId);
 
 			if (!roomResults.isCompleted) {
 				return next({

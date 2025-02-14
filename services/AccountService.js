@@ -127,8 +127,6 @@ class AccountService extends BaseService {
 				}
 			}
 
-			console.log(accountWithEmail.results)
-
 			if (accountWithEmail.results.length > 0) {
 				return {
 					isCompleted: false,
@@ -161,6 +159,8 @@ class AccountService extends BaseService {
 
 	async signIn({ email, password }) {
 		try {
+
+			console.log(email, password)
 
 			const accountDetails = await this.getAccountByEmail(email);
 
@@ -208,6 +208,8 @@ class AccountService extends BaseService {
 				results: {
 					access_token: accessToken,
 					refresh_token: refreshToken,
+					user_id: accountDetails.results[0].user_id,
+					email: accountDetails.results[0].email,
 				}
 			}
 

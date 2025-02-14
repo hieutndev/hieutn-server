@@ -3,10 +3,11 @@ const router = express.Router();
 
 
 const GameCardController = require('../controllers/GameCardController');
+const { accessTokenChecker } = require("../middlewares/token-middlewares");
 
 
 router.get('/', GameCardController.getAllRooms);
-router.post('/', GameCardController.createNewRoom);
+router.post('/', accessTokenChecker, GameCardController.createNewRoom);
 
 router.get("/:roomId/match-results", GameCardController.getRoomMatchResults)
 router.post("/:roomId/match-results", GameCardController.insertNewResults)

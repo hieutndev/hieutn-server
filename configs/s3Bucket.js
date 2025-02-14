@@ -38,8 +38,6 @@ class S3Bucket {
 				ContentType: mimetype
 			}
 
-			console.log("objectName", objectName);
-
 
 			const command = new PutObjectCommand(params);
 			return await s3Client.send(command);

@@ -1,6 +1,8 @@
 const BaseService = require("./BaseService");
 
 const { gameCardSQL } = require("../utils/SQLQueryString");
+const Message = require("../utils/ResponseMessage")
+const { emailMasking } = require("../utils/data-masking");
 
 class GameCardService extends BaseService {
 	constructor() {
@@ -8,25 +10,42 @@ class GameCardService extends BaseService {
 	}
 
 	async getAllRooms() {
-		return await this.query(gameCardSQL.getAllRoomsWithConfig, []);
+		try {
+
+			const listRooms = await super.query(gameCardSQL.getAllRoomsAndConfig, [])
+
+			return {
+				isCompleted: listRooms.isCompleted,
+				message: listRooms.isCompleted ? Message.successGetAll(`${listRooms.results.length} Game Rooms`) : listRooms.message,
+				results: listRooms.results.reverse()
+			}
+
+
+		} catch (error) {
+			return {
+				isCompleted: false,
+				message: error,
+			}
+		}
+
 	}
 
-	async createNewRoom({
-							first,
-							second,
-							third,
-							fourth,
-							red_two,
-							black_two,
-							burnt_out,
-							swept_out,
-							player1_name,
-							player2_name,
-							player3_name,
-							player4_name
-						}) {
+	async createNewRoom(created_by, {
+		first,
+		second,
+		third,
+		fourth,
+		red_two,
+		black_two,
+		burnt_out,
+		swept_out,
+		player1_name,
+		player2_name,
+		player3_name,
+		player4_name
+	}) {
 		try {
-			const newRoom = await this.query(gameCardSQL.createNewRoom, [9999])
+			const newRoom = await this.query(gameCardSQL.createNewRoom, [created_by])
 
 			if (!newRoom.isCompleted) {
 				return {
@@ -63,10 +82,9 @@ class GameCardService extends BaseService {
 		}
 	}
 
-	async getRoomDetails(roomId) {
+	async getRoomInfo(roomId) {
 		try {
-			const roomDetails = await this.query(gameCardSQL.getRoomsDetailsWithConfig, [roomId])
-
+			const roomDetails = await this.query(gameCardSQL.getRoomInfoAndConfig, [roomId])
 
 			if (!roomDetails.isCompleted) {
 				return {
@@ -78,7 +96,10 @@ class GameCardService extends BaseService {
 
 			return {
 				isCompleted: true,
-				results: roomDetails.results[0]
+				results: {
+					...roomDetails.results[0],
+					email: emailMasking(roomDetails.results[0].email)
+				}
 			}
 		} catch (error) {
 			return {
@@ -88,9 +109,9 @@ class GameCardService extends BaseService {
 		}
 	}
 
-	async getRoomMatchResults(roomId) {
+	async getListPlayHistory(roomId) {
 		try {
-			const queryResults = await this.queryMany(gameCardSQL.getRoomMatchResults, [roomId, roomId])
+			const queryResults = await this.queryMany(gameCardSQL.getListPlayHistory, [roomId, roomId])
 
 			if (!queryResults.isCompleted) {
 				return {
@@ -117,11 +138,29 @@ class GameCardService extends BaseService {
 		}
 	}
 
-	async insertNewResult(roomId, matchId, player1Result, player2Result, player3Result, player4Result, twoPlayResults) {
+	getNewMatchId(matchHistory) {
+		const listId = matchHistory.map((_v) => _v.match_id);
+
+		return listId.length > 0 ? Math.max(...listId) + 1 : 1;
+	}
+
+	async insertNewResult(roomId, player1Result, player2Result, player3Result, player4Result, twoPlayResults) {
 		try {
+
+			const playHistory = await this.getListPlayHistory(roomId);
+
+			if (!playHistory.isCompleted) {
+				return {
+					isCompleted: false,
+					message: playHistory.message,
+				}
+			}
+
+			const newMatchId = this.getNewMatchId(playHistory.results.matchResults);
+
 			if (Array.isArray(twoPlayResults) && twoPlayResults.length > 0) {
 				const mapQueryString = twoPlayResults.map((_r) => gameCardSQL.createTwoPlayResult).join(";")
-				const mapInsertValue = (twoPlayResults.map((_r) => [roomId, matchId, _r.two_color, _r.taker, _r.burner, _r.quantity])).flat();
+				const mapInsertValue = (twoPlayResults.map((_r) => [roomId, newMatchId, _r.two_color, _r.taker, _r.burner, _r.quantity])).flat();
 				const twoPlayResult = await this.queryMany(mapQueryString, mapInsertValue);
 
 				if (twoPlayResult.isCompleted === false) {
@@ -133,10 +172,10 @@ class GameCardService extends BaseService {
 				}
 			}
 
-			const player1Values = [roomId, matchId, 1, player1Result.rank, player1Result.win_all, player1Result.burnt_out, player1Result.swept_out]
-			const player2Values = [roomId, matchId, 2, player2Result.rank, player2Result.win_all, player2Result.burnt_out, player2Result.swept_out]
-			const player3Values = [roomId, matchId, 3, player3Result.rank, player3Result.win_all, player3Result.burnt_out, player3Result.swept_out]
-			const player4Values = [roomId, matchId, 4, player4Result.rank, player4Result.win_all, player4Result.burnt_out, player4Result.swept_out]
+			const player1Values = [roomId, newMatchId, 1, player1Result.rank, player1Result.win_all, player1Result.burnt_out, player1Result.swept_out]
+			const player2Values = [roomId, newMatchId, 2, player2Result.rank, player2Result.win_all, player2Result.burnt_out, player2Result.swept_out]
+			const player3Values = [roomId, newMatchId, 3, player3Result.rank, player3Result.win_all, player3Result.burnt_out, player3Result.swept_out]
+			const player4Values = [roomId, newMatchId, 4, player4Result.rank, player4Result.win_all, player4Result.burnt_out, player4Result.swept_out]
 
 			const newResult = await this.query(gameCardSQL.createNewMatchResult, [...player1Values, ...player2Values, ...player3Values, ...player4Values])
 
@@ -173,8 +212,6 @@ class GameCardService extends BaseService {
 					results: [],
 				}
 			}
-
-			console.log(updatedConfig.results);
 
 			return {
 				isCompleted: true,
@@ -267,6 +304,7 @@ class GameCardService extends BaseService {
 				if (_d.swept_out) {
 					score += -roomConfig.swept_out - roomConfig.fourth;
 				}
+
 				return score;
 			}, 0);
 
@@ -286,7 +324,6 @@ class GameCardService extends BaseService {
 				return standardScore;
 			}
 		} catch (error) {
-			console.log(error)
 			throw new Error(error)
 		}
 	}
@@ -392,23 +429,23 @@ class GameCardService extends BaseService {
 				})
 			}
 
-			console.log(matrixScore)
+
 			return matrixScore
 		} catch (error) {
-			console.log(error)
+
 			throw new Error(error)
 		}
 	}
 
 
-	async getScoreBoard(roomId) {
+	async getRoomResults(roomId) {
 		try {
-			const [matchHistory, roomConfig] = await Promise.all([this.getRoomMatchResults(roomId), this.getRoomConfig(roomId)])
+			const [playHistory, roomConfig] = await Promise.all([this.getListPlayHistory(roomId), this.getRoomConfig(roomId)])
 
-			if (!matchHistory.isCompleted) {
+			if (!playHistory.isCompleted) {
 				return {
 					isCompleted: false,
-					message: matchHistory.message,
+					message: playHistory.message,
 					results: [],
 				}
 			}
@@ -420,25 +457,27 @@ class GameCardService extends BaseService {
 				}
 			}
 
+
 			return {
 				isCompleted: true,
 				results: {
 					scoreBoard: {
 						totalScore: {
-							player1: this.calculateTotalScore(1, roomConfig.results, matchHistory.results),
-							player2: this.calculateTotalScore(2, roomConfig.results, matchHistory.results),
-							player3: this.calculateTotalScore(3, roomConfig.results, matchHistory.results),
-							player4: this.calculateTotalScore(4, roomConfig.results, matchHistory.results),
+							player1: this.calculateTotalScore(1, roomConfig.results, playHistory.results),
+							player2: this.calculateTotalScore(2, roomConfig.results, playHistory.results),
+							player3: this.calculateTotalScore(3, roomConfig.results, playHistory.results),
+							player4: this.calculateTotalScore(4, roomConfig.results, playHistory.results),
 						},
-						matrixScore: this.calculateMatrixScore(roomConfig.results, matchHistory.results),
+						matrixScore: this.calculateMatrixScore(roomConfig.results, playHistory.results),
 					},
-					historyScoreBoard: Array.from({ length: (matchHistory.results.matchResults.length / 4) })
+					historyScoreBoard: Array.from({ length: (playHistory.results.matchResults.length / 4) })
 						.map((_, index) => [
-							this.calculateTotalScore(1, roomConfig.results, matchHistory.results, index + 1),
-							this.calculateTotalScore(2, roomConfig.results, matchHistory.results, index + 1),
-							this.calculateTotalScore(3, roomConfig.results, matchHistory.results, index + 1),
-							this.calculateTotalScore(4, roomConfig.results, matchHistory.results, index + 1),
-						])
+							this.calculateTotalScore(1, roomConfig.results, playHistory.results, index + 1),
+							this.calculateTotalScore(2, roomConfig.results, playHistory.results, index + 1),
+							this.calculateTotalScore(3, roomConfig.results, playHistory.results, index + 1),
+							this.calculateTotalScore(4, roomConfig.results, playHistory.results, index + 1),
+						]),
+					playHistory: playHistory.results,
 				}
 			}
 
@@ -469,6 +508,24 @@ class GameCardService extends BaseService {
 			}
 		} catch (error) {
 			throw new Error(error)
+		}
+	}
+
+	async deleteResults(roomId, matchId) {
+		try {
+
+			const deleteMatchResults = await super.queryMany(gameCardSQL.deleteMatchResults, [roomId, matchId, roomId, matchId]);
+
+			return {
+				isCompleted: deleteMatchResults.isCompleted,
+				message: deleteMatchResults.isCompleted ? Message.successDelete("match results") : deleteMatchResults.message
+			}
+
+		} catch (error) {
+			return {
+				isCompleted: false,
+				message: error.message
+			}
 		}
 	}
 

@@ -32,9 +32,7 @@ class MySQL {
 				}
 
 			}
-
-
-			console.log(sqlString.split(";"))
+			
 			if (sqlString.includes(";") && sqlString.split(";").length >= 2) {
 				return {
 					isCompleted: false,
