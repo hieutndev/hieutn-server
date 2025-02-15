@@ -160,8 +160,6 @@ class AccountService extends BaseService {
 	async signIn({ email, password }) {
 		try {
 
-			console.log(email, password)
-
 			const accountDetails = await this.getAccountByEmail(email);
 
 			if (!accountDetails.isCompleted) {
