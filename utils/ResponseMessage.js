@@ -10,6 +10,7 @@ const ResponseMessage = {
 	notMatch: (resource1, resource2) => `${resource2} does not match ${resource1}`,
 	passwordNotStrongEnough: "Password is not strong enough",
 	emailAlreadyExist: "Email already exist",
+	usernameAlreadyExist: "Username already exist",
 	signUpSuccess: "Account created successfully",
 	emailNotFound: "No account found with the email provided",
 	userIdNotFound: "No account found with the user_id provided",

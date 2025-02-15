@@ -12,11 +12,35 @@ const { generateAccessToken, generateRefreshToken } = require("../utils/jwt-help
 class AccountService extends BaseService {
 	constructor() {
 		super();
+		this.signUpByEmail = this.signUpByEmail.bind(this);
+		this.signUpByUsername = this.signUpByUsername.bind(this);
 	}
 
 	async getAccountByEmail(email) {
 		try {
 			const account = await super.query(accountSQL.getAccountByEmail, [email])
+
+			if (!account.isCompleted) {
+				return {
+					isCompleted: false,
+					message: account.message,
+				}
+			}
+
+			return {
+				isCompleted: true,
+				results: account.results,
+			}
+
+		} catch (error) {
+			throw error
+		}
+	}
+
+	async getAccountByUsername(username) {
+		try {
+			console.log('call');
+			const account = await super.query(accountSQL.getAccountByUsername, [username])
 
 			if (!account.isCompleted) {
 				return {
@@ -102,7 +126,7 @@ class AccountService extends BaseService {
 		return await bcrypt.compare(inputPassword, hashedPassword)
 	}
 
-	async signUp({ email, password, confirm_password }) {
+	async signUpByEmail({ email, password, confirm_password }) {
 		try {
 
 			if (password !== confirm_password) {
@@ -120,6 +144,7 @@ class AccountService extends BaseService {
 			}
 
 			const accountWithEmail = await this.getAccountByEmail(email)
+
 			if (!accountWithEmail.isCompleted) {
 				return {
 					isCompleted: false,
@@ -157,10 +182,70 @@ class AccountService extends BaseService {
 		}
 	}
 
-	async signIn({ email, password }) {
+	async signUpByUsername({ username, password, confirm_password }) {
 		try {
 
-			const accountDetails = await this.getAccountByEmail(email);
+			if (password !== confirm_password) {
+				return {
+					isCompleted: false,
+					message: Message.notMatch("Password", "Confirm password"),
+				}
+			}
+
+			if (!REGEX.PASSWORD.test(password)) {
+				return {
+					isCompleted: false,
+					message: Message.passwordNotStrongEnough,
+				}
+			}
+
+			console.log(this);
+			const accountWithUsername = await this.getAccountByUsername(username)
+
+			if (!accountWithUsername.isCompleted) {
+				return {
+					isCompleted: false,
+					message: accountWithUsername.message,
+				}
+			}
+
+			if (accountWithUsername.results.length > 0) {
+				return {
+					isCompleted: false,
+					message: Message.usernameAlreadyExist,
+				}
+			}
+
+			const signUp = await super.query(accountSQL.signUp, [username, null, await this.hashPassword(password)])
+
+			if (!signUp.isCompleted) {
+				return {
+					isCompleted: false,
+					message: signUp.message,
+				}
+			}
+
+			return {
+				isCompleted: true,
+				message: Message.signUpSuccess,
+			}
+
+		} catch (error) {
+			return {
+				isCompleted: false,
+				message: error,
+			}
+		}
+	}
+
+	async signIn({ username, email, password }) {
+		try {
+			let accountDetails;
+			if (username) {
+				accountDetails = await this.getAccountByUsername(username);
+			} else {
+				accountDetails = await this.getAccountByEmail(email);
+			}
 
 			if (!accountDetails.isCompleted) {
 				return {
@@ -207,7 +292,7 @@ class AccountService extends BaseService {
 					access_token: accessToken,
 					refresh_token: refreshToken,
 					user_id: accountDetails.results[0].user_id,
-					email: accountDetails.results[0].email,
+					username: accountDetails.results[0].username,
 				}
 			}
 

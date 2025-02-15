@@ -70,8 +70,6 @@ const io = new Server(server, {
 	}
 })
 
-let listOnline = [];
-
 let currentInRooms = new Map();
 
 io.on('connection', (socket) => {
@@ -87,12 +85,12 @@ io.on('connection', (socket) => {
 		}
 	})
 
-	socket.on("joinCGRoom", ({ roomId, email }) => {
+	socket.on("joinCGRoom", ({ roomId, username }) => {
 		socket.join(roomId.toString());
 		if (!currentInRooms.get(roomId)) {
-			currentInRooms.set(roomId, [email]);
+			currentInRooms.set(roomId, [username]);
 		} else {
-			currentInRooms.set(roomId, Array.from(new Set([...currentInRooms.get(roomId), email])).filter((_v) => _v));
+			currentInRooms.set(roomId, Array.from(new Set([...currentInRooms.get(roomId), username])).filter((_v) => _v));
 		}
 
 		io.to(roomId.toString()).emit("playerChange", {
@@ -101,9 +99,9 @@ io.on('connection', (socket) => {
 		});
 	})
 
-	socket.on("outCGRoom", ({ roomId, email }) => {
+	socket.on("outCGRoom", ({ roomId, username }) => {
 		socket.leave(roomId.toString());
-		currentInRooms.set(roomId, currentInRooms.get(roomId) ? [...currentInRooms.get(roomId).filter((_v) => _v !== email)] : []);
+		currentInRooms.set(roomId, currentInRooms.get(roomId) ? [...currentInRooms.get(roomId).filter((_v) => _v !== username)] : []);
 
 		io.to(roomId.toString()).emit("playerChange", {
 			currentInRoom: currentInRooms.get(roomId).length,
@@ -177,7 +175,7 @@ io.on('connection', (socket) => {
 	})
 
 	socket.on("disconnect", () => {
-		io.emit('currentOnline', listOnline.length);
+
 	})
 })
 

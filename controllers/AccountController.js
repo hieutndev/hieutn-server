@@ -10,7 +10,18 @@ class AccountController extends BaseController {
 	async signUp(req, res, next) {
 		try {
 
-			const { isCompleted, message } = await AccountService.signUp(req.body)
+			const { username } = req.body;
+
+			let signUpMethod;
+
+			if (username) {
+				signUpMethod = AccountService.signUpByUsername;
+			} else {
+				signUpMethod = AccountService.signUpByEmail;
+			}
+
+			const { isCompleted, message } = await signUpMethod(req.body)
+
 
 			if (!isCompleted) {
 				return next({

@@ -208,6 +208,9 @@ const QueryString = {
 		getAccountByEmail: `SELECT *
                             FROM accounts
                             WHERE email = ?`,
+		getAccountByUsername: `SELECT *
+                               FROM accounts
+                               WHERE username = ?`,
 		getAccountById: `SELECT *
                          FROM accounts
                          WHERE user_id = ?`,
