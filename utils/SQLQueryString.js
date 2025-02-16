@@ -13,7 +13,7 @@ const QueryString = {
                       FROM gcard_rooms
                       WHERE room_id = ?`,
 
-		getRoomInfoAndConfig: `SELECT acc.email,
+		getRoomInfoAndConfig: `SELECT acc.username,
                                       rooms.*,
                                       configs.*
                                FROM gcard_rooms as rooms

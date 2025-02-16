@@ -98,7 +98,7 @@ class GameCardService extends BaseService {
 				isCompleted: true,
 				results: {
 					...roomDetails.results[0],
-					email: emailMasking(roomDetails.results[0].email)
+					username: roomDetails.results[0].username
 				}
 			}
 		} catch (error) {
