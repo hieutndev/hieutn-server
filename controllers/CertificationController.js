@@ -44,7 +44,6 @@ class CertificationController extends BaseController {
 
 			return super.createSuccessResponse(res, 200, message, results)
 		} catch (error) {
-			console.log(error);
 			return next({
 				status: 500,
 				error,
@@ -79,8 +78,6 @@ class CertificationController extends BaseController {
 		try {
 
 			const { certId } = req.params;
-
-			console.log(req.body)
 
 			const {
 				isCompleted,

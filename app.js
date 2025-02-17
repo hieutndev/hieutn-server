@@ -41,8 +41,6 @@ app.use('/api', indexRouter);
 app.use(function (err, req, res, next) {
 	const { error, status, message } = err;
 
-	console.log(err);
-
 
 	return res.status(status || 500).json({
 		status: status?.toString().startsWith("4") ? "failure" : "error" ?? "error",
@@ -53,8 +51,6 @@ app.use(function (err, req, res, next) {
 				: "",
 	});
 });
-
-console.log(process.env.NODE_ENV === "production" ? process.env.PRODUCTION_PORT : process.env.LOCAL_PORT)
 
 const port = (process.env.NODE_ENV === "production" ? process.env.PRODUCTION_PORT : process.env.LOCAL_PORT) || 3000
 app.set('port', port);

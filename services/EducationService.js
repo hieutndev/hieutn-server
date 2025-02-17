@@ -66,8 +66,6 @@ class EducationService extends BaseService {
 		try {
 			const addNewEducationStatus = await super.query(educationSQL.addNewEducation, [title, organization, time_start, time_end]);
 
-			console.log(addNewEducationStatus);
-
 			if (!addNewEducationStatus.isCompleted) {
 				return {
 					isCompleted: false,

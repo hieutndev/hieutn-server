@@ -212,8 +212,6 @@ class CertificationService extends BaseService {
 
 			const certStatus = await this.getCertificationDetails(certId);
 
-			console.log(certStatus)
-
 			if (!certStatus.isCompleted) {
 				return {
 					isCompleted: false,

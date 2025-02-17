@@ -84,8 +84,6 @@ class EmploymentController extends BaseController {
 
 			const { employmentId } = req.params;
 
-			console.log(req.params)
-
 			const {
 				isCompleted,
 				message,

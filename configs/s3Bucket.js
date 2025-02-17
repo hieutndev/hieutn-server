@@ -25,7 +25,6 @@ class S3Bucket {
 			let resizeBuffer;
 			if (isResize) {
 				resizeBuffer = await resizeImage(buffer, 1920, 1080, fit);
-				console.log(isResize ? "resizeBuffer" : "buffer")
 			}
 
 			const s3Client = this.createBucket();

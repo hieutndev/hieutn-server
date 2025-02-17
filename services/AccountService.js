@@ -39,7 +39,6 @@ class AccountService extends BaseService {
 
 	async getAccountByUsername(username) {
 		try {
-			console.log('call');
 			const account = await super.query(accountSQL.getAccountByUsername, [username])
 
 			if (!account.isCompleted) {
@@ -199,7 +198,6 @@ class AccountService extends BaseService {
 				}
 			}
 
-			console.log(this);
 			const accountWithUsername = await this.getAccountByUsername(username)
 
 			if (!accountWithUsername.isCompleted) {

@@ -6,8 +6,6 @@ const { verifyToken } = require("../utils/jwt-helpers");
 async function refreshTokenChecker(req, res, next) {
 	const token = req.headers['x-rftk'];
 
-	console.log(token);
-
 	if (!token) {
 		return res.status(401).json({
 			status: "failure",

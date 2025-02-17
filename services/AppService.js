@@ -31,8 +31,6 @@ class AppService extends BaseService {
 				finalResult = listApps.results.filter((app) => app.is_hide === 1);
 			}
 
-			console.log(finalResult);
-
 			const mapAppIcon = await Promise.all(finalResult.map(async (app) => {
 				app.app_icon = await s3.getObject(app.app_icon);
 				return app
@@ -97,8 +95,6 @@ class AppService extends BaseService {
 					message: addNewAppStatus.message,
 				}
 			}
-
-			console.log(appIconName, addNewAppStatus)
 
 			await s3.putObject(appIconName, appIcon);
 

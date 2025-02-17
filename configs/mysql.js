@@ -118,18 +118,6 @@ class MySQL {
 			}
 		}
 	}
-
-	testConnect() {
-		const connection = this.createConnection();
-		connection.connect((err) => {
-			if (err) {
-				console.log(err);
-				return;
-			}
-			console.log("Connected to MySQL");
-		});
-		connection.end();
-	}
 }
 
 module.exports = new MySQL();
