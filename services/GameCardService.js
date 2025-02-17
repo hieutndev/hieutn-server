@@ -302,7 +302,7 @@ class GameCardService extends BaseService {
 				}
 
 				if (_d.swept_out) {
-					score += -roomConfig.swept_out - roomConfig.fourth;
+					score += -roomConfig.swept_out;
 				}
 
 				return score;
