@@ -14,6 +14,10 @@ router.get('/', ProjectController.getAllProjects);
 router.post('/', accessTokenChecker, requireRole(1), upload.single("project_thumbnail"), ProjectController.createNewProject);
 router.get("/groups", ProjectController.getListProjectGroups);
 router.post("/groups", ProjectController.createNewProjectGroups);
+router.patch("/groups/:groupId", ProjectController.updateProjectGroups)
+router.patch("/groups/:groupId/delete", ProjectController.softDeleteProjectGroup);
+router.patch("/groups/:groupId/recover", ProjectController.recoverProjectGroup);
+router.delete("/groups/:groupId", ProjectController.permanentDeleteProjectGroup);
 
 router.get("/:projectId", ProjectController.getProjectDetails)
 router.patch("/:projectId", accessTokenChecker, requireRole(1), upload.single("project_thumbnail"), ProjectController.updateProjectDetails);

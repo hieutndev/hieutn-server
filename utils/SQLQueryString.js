@@ -109,11 +109,20 @@ const QueryString = {
         where id = ?;`,
 		getListProjectGroups: `SELECT *
                                FROM project_groups`,
+		getProjectGroupInfo: `SELECT *
+                              FROM project_groups
+                              WHERE group_id = ?`,
 		createNewProjectGroup: `INSERT INTO project_groups (group_title)
                                 VALUES (?)`,
 		updateProjectGroup: `UPDATE project_groups
                              SET group_title = ?
                              WHERE group_id = ?`,
+		softDeleteGroup: `UPDATE project_groups
+                          SET is_deleted = 1
+                          WHERE group_id = ?`,
+		recoverGroup: `UPDATE project_groups
+                       SET is_deleted = 0
+                       WHERE group_id = ?`,
 		deleteProjectGroup: `DELETE
                              FROM project_groups
                              WHERE group_id = ?`,

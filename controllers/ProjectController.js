@@ -23,14 +23,12 @@ class ProjectController extends BaseController {
 				group_id
 			} = req.body;
 
-			const imageName = generateUniqueString();
-
 
 			const {
 				isCompleted,
 				message,
 				results
-			} = await ProjectService.createNewProject(project_fullname, project_shortname, start_date, end_date, short_description, imageName, article_body, group_id)
+			} = await ProjectService.createNewProject(project_fullname, project_shortname, start_date, end_date, short_description, article_body, group_id, req.file)
 
 			if (!isCompleted) {
 				return next({
@@ -196,6 +194,104 @@ class ProjectController extends BaseController {
 				error,
 			})
 		}
+	}
+
+	async updateProjectGroups(req, res, next) {
+		try {
+
+			const { groupId } = req.params;
+
+			const { newGroupTitle } = req.body
+			const { isCompleted, message } = await ProjectService.updateProjectGroupInfo(groupId, newGroupTitle);
+
+			if (!isCompleted) {
+				return next({
+					status: 404,
+					message
+				})
+			}
+
+			return super.createSuccessResponse(res, 200, message);
+
+		} catch (error) {
+			return next({
+				status: 500,
+				error,
+			})
+		}
+	}
+
+	async softDeleteProjectGroup(req, res, next) {
+		try {
+
+			const { groupId } = req.params;
+
+			const { isCompleted, message } = await ProjectService.softDeleteProjectGroup(groupId);
+
+			if (!isCompleted) {
+				return next({
+					status: 404,
+					message
+				})
+			}
+
+			return super.createSuccessResponse(res, 200, message);
+		} catch (error) {
+			return next({
+				status: 500,
+				error
+			})
+		}
+
+	}
+
+	async recoverProjectGroup(req, res, next) {
+		try {
+
+			const { groupId } = req.params;
+
+			const { isCompleted, message } = await ProjectService.recoverProjectGroup(groupId);
+
+			if (!isCompleted) {
+				return next({
+					status: 404,
+					message
+				})
+			}
+
+			return super.createSuccessResponse(res, 200, message);
+		} catch (error) {
+			return next({
+				status: 500,
+				error
+			})
+		}
+
+	}
+
+	async permanentDeleteProjectGroup(req, res, next) {
+		try {
+
+			const { groupId } = req.params;
+
+			const { isCompleted, message } = await ProjectService.permanentDeleteProjectGroup(groupId);
+
+			if (!isCompleted) {
+				return next({
+					status: 404,
+					message
+				})
+			}
+
+			return super.createSuccessResponse(res, 200, message);
+
+		} catch (error) {
+			return next({
+				status: 500,
+				error
+			})
+		}
+
 	}
 }
 

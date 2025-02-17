@@ -2,6 +2,7 @@ const BaseService = require("./BaseService");
 const { projectSQL } = require("../utils/SQLQueryString")
 const s3Bucket = require("../configs/s3Bucket");
 const Message = require("../utils/ResponseMessage");
+const generateUniqueString = require("../utils/generate-unique-string");
 
 class ProjectService extends BaseService {
 
@@ -56,9 +57,11 @@ class ProjectService extends BaseService {
 		}
 	}
 
-	async createNewProject(project_fullname, project_shortname, start_date, end_date, short_description, project_thumbnail, article_body, group_id) {
+	async createNewProject(project_fullname, project_shortname, start_date, end_date, short_description, article_body, group_id, thumbnail_file) {
 		try {
-			const createProject = await this.insertProject(project_fullname, project_shortname, start_date, end_date, short_description, project_thumbnail, group_id);
+			const imageName = generateUniqueString();
+
+			const createProject = await this.insertProject(project_fullname, project_shortname, start_date, end_date, short_description, imageName, group_id);
 
 			if (!createProject.isCompleted) {
 				return {
@@ -76,7 +79,8 @@ class ProjectService extends BaseService {
 				}
 			}
 
-			await s3Bucket.putObject(imageName, req.file, true, "cover")
+
+			await s3Bucket.putObject(imageName, thumbnail_file, true, "cover")
 
 			return {
 				isCompleted: true,
@@ -308,6 +312,25 @@ class ProjectService extends BaseService {
 		}
 	}
 
+	async getProjectGroupInfo(groupId) {
+		try {
+
+			const groupInfo = await super.query(projectSQL.getProjectGroupInfo, [groupId]);
+
+			return {
+				isCompleted: groupInfo.isCompleted,
+				message: groupInfo.isCompleted ? Message.successGetOne("project group") : groupInfo.message,
+				results: groupInfo.isCompleted ? groupInfo.results[0] : {}
+			}
+
+		} catch (error) {
+			return {
+				isCompleted: false,
+				message: error,
+			}
+		}
+	}
+
 	async createNewProjectGroup({ newGroupTitle }) {
 
 		try {
@@ -326,6 +349,125 @@ class ProjectService extends BaseService {
 			}
 		}
 
+	}
+
+	async updateProjectGroupInfo(groupId, newGroupTitle) {
+		try {
+			const updateGroup = await super.query(projectSQL.updateProjectGroup, [newGroupTitle, groupId]);
+
+			return {
+				isCompleted: updateGroup.isCompleted,
+				message: updateGroup.isCompleted ? Message.successUpdate("project group") : updateGroup.message,
+			}
+
+		} catch (error) {
+			return {
+				isCompleted: false,
+				message: error,
+			}
+		}
+	}
+
+	async softDeleteProjectGroup(groupId) {
+		try {
+
+			const groupInfo = await this.getProjectGroupInfo(groupId);
+
+			if (!groupInfo.isCompleted) {
+				return {
+					isCompleted: false,
+					message: groupInfo.message
+				}
+			}
+
+			if (groupInfo.results.is_deleted) {
+				return {
+					isCompleted: false,
+					message: Message.alreadyInSoftDelete("project group")
+				}
+			}
+
+			const softDeleteGroup = await super.query(projectSQL.softDeleteGroup, [groupId]);
+
+			return {
+				isCompleted: softDeleteGroup.isCompleted,
+				message: softDeleteGroup.isCompleted ? Message.successDelete("project group") : softDeleteGroup.message
+			}
+
+		} catch (error) {
+			return {
+				isCompleted: false,
+				message: error,
+			}
+		}
+	}
+
+	async recoverProjectGroup(groupId) {
+		try {
+
+			const groupInfo = await this.getProjectGroupInfo(groupId);
+
+			if (!groupInfo.isCompleted) {
+				return {
+					isCompleted: false,
+					message: groupInfo.message
+				}
+			}
+
+			if (!groupInfo.results.is_deleted) {
+				return {
+					isCompleted: false,
+					message: Message.notInSoftDelete("project group")
+				}
+			}
+
+			const recoverGroup = await super.query(projectSQL.recoverGroup, [groupId]);
+
+			return {
+				isCompleted: recoverGroup.isCompleted,
+				message: recoverGroup.isCompleted ? Message.successRecover("project group") : recoverGroup.message
+			}
+
+		} catch (error) {
+			return {
+				isCompleted: false,
+				message: error,
+			}
+		}
+	}
+
+	async permanentDeleteProjectGroup(groupId) {
+		try {
+
+			const groupInfo = await this.getProjectGroupInfo(groupId);
+
+			if (!groupInfo.isCompleted) {
+				return {
+					isCompleted: false,
+					message: groupInfo.message
+				}
+			}
+
+			if (!groupInfo.results.is_deleted) {
+				return {
+					isCompleted: false,
+					message: Message.notInSoftDelete("project group")
+				}
+			}
+
+			const deleteGroup = await super.query(projectSQL.deleteProjectGroup, [groupId]);
+
+			return {
+				isCompleted: deleteGroup.isCompleted,
+				message: deleteGroup.isCompleted ? Message.successRecover("project group") : deleteGroup.message
+			}
+
+		} catch (error) {
+			return {
+				isCompleted: false,
+				message: error,
+			}
+		}
 	}
 }
 
