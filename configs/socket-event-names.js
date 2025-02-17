@@ -3,6 +3,10 @@ const SOCKET_EVENT_NAMES = {
 		RECEIVE: "updateRoomConfig",
 		SEND: "roomConfigUpdated",
 	},
+	CLOSE_ROOM: {
+		RECEIVE: "closeRoom",
+		SEND: "roomClosed",
+	},
 	CREATE_RESULT: {
 		RECEIVE: "createNewResult",
 		SEND: "newResultCreated",

@@ -69,9 +69,9 @@ const io = new Server(server, {
 let currentInRooms = new Map();
 
 io.on('connection', (socket) => {
+
 	socket.on(SOCKET_EVENT_NAMES.CREATE_NEW_ROOM.RECEIVE, async ({ created_by, roomConfig }) => {
 		const createNewRoom = await GameCardService.createNewRoom(created_by, roomConfig);
-
 		if (createNewRoom.isCompleted) {
 			const getListRooms = await GameCardService.getAllRooms();
 			io.emit(SOCKET_EVENT_NAMES.CREATE_NEW_ROOM.SEND, {
@@ -82,6 +82,7 @@ io.on('connection', (socket) => {
 	})
 
 	socket.on(SOCKET_EVENT_NAMES.JOIN_CARDGAME_ROOM, ({ roomId, username }) => {
+
 		socket.join(roomId.toString());
 		if (!currentInRooms.get(roomId)) {
 			currentInRooms.set(roomId, [username]);
@@ -167,6 +168,28 @@ io.on('connection', (socket) => {
 			} else {
 				io.to(roomId.toString()).emit("errorOnDeleteMatchResults", { error: deleteMatchResults.message });
 			}
+		}
+	})
+
+	socket.on(SOCKET_EVENT_NAMES.CLOSE_ROOM.RECEIVE, async ({ roomId, closedBy }) => {
+		const closeRoom = await GameCardService.closeRoom(roomId);
+
+		if (closeRoom.isCompleted) {
+
+			await Promise.all([GameCardService.getRoomInfo(roomId), GameCardService.getAllRooms()])
+				.then(([roomInfo, getListRooms]) => {
+					io.emit(SOCKET_EVENT_NAMES.CLOSE_ROOM.SEND, {
+						closedBy,
+						roomDetails: roomInfo.results,
+						listRooms: getListRooms.results
+					});
+					io.to(roomId.toString()).emit(SOCKET_EVENT_NAMES.CLOSE_ROOM.SEND, {
+						closedBy,
+						roomDetails: roomInfo.results
+					});
+				})
+		} else {
+			io.to(roomId.toString()).emit("errorOnClosedRoom", { error: closeRoom.message });
 		}
 	})
 
