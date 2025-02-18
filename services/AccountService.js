@@ -329,9 +329,6 @@ class AccountService extends BaseService {
 				}
 			}
 
-			// const newRefreshToken
-
-
 			return {
 				isCompleted: true,
 				message: Message.successGetNewAccessToken,
@@ -411,6 +408,7 @@ class AccountService extends BaseService {
 		} catch (error) {
 			return {
 				isCompleted: false,
+				message: error,
 			}
 		}
 	}
@@ -450,6 +448,7 @@ class AccountService extends BaseService {
 		} catch (error) {
 			return {
 				isCompleted: false,
+				message: error,
 			}
 		}
 	}

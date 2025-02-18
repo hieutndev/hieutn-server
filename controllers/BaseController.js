@@ -11,7 +11,7 @@ class BaseController {
 
 		return res.status(status).json({
 			status: STATUS_TEXT[status],
-			message: typeof message === "string" ? message : `${message.name} - ${message.message}`,
+			message: message ? typeof message === "string" ? message : `${message.name} - ${message.message}` : "",
 			results
 		});
 	}
