@@ -1,7 +1,7 @@
 const BaseService = require("./BaseService");
 
-const { gameCardSQL } = require("../utils/SQLQueryString");
-const Message = require("../utils/ResponseMessage")
+const { gameCardSQL } = require("../utils/sql-query-string");
+const Message = require("../utils/response-message")
 const { emailMasking } = require("../utils/data-masking");
 
 class GameCardService extends BaseService {
@@ -67,6 +67,7 @@ class GameCardService extends BaseService {
 
 			return {
 				isCompleted: true,
+				message: Message.successCreate("game card room"),
 				results: {
 					newRoomId: newRoom.results.insertId,
 				}
@@ -86,21 +87,15 @@ class GameCardService extends BaseService {
 		try {
 			const roomDetails = await this.query(gameCardSQL.getRoomInfoAndConfig, [roomId])
 
-			if (!roomDetails.isCompleted) {
-				return {
-					isCompleted: false,
-					message: roomDetails.message,
-					results: [],
-				}
-			}
-
 			return {
-				isCompleted: true,
-				results: {
+				isCompleted: roomDetails.isCompleted,
+				message: roomDetails.isCompleted ? Message.successGetOne(`Room ${roomId}`) : roomDetails.message,
+				results: roomDetails.isCompleted ? {
 					...roomDetails.results[0],
 					username: roomDetails.results[0].username
-				}
+				} : []
 			}
+
 		} catch (error) {
 			return {
 				isCompleted: false,
@@ -125,6 +120,7 @@ class GameCardService extends BaseService {
 
 			return {
 				isCompleted: true,
+				message: Message.successGetAll(`Room ${roomId} match results`),
 				results: {
 					matchResults,
 					twoPlayResults
@@ -188,9 +184,20 @@ class GameCardService extends BaseService {
 				}
 			}
 
+			const roomMatchResults = await this.getListPlayHistory(roomId);
+
+
+			if (roomMatchResults.isCompleted === false) {
+				return {
+					isCompleted: false,
+					message: roomMatchResults.message,
+				}
+			}
+
 			return {
 				isCompleted: true,
-				results: newResult.results
+				message: Message.successCreate("match results"),
+				results: roomMatchResults.results
 			}
 
 		} catch (error) {
@@ -213,9 +220,19 @@ class GameCardService extends BaseService {
 				}
 			}
 
+			const newRoomInfo = await GameCardService.getRoomInfo(roomId);
+
+			if (!newRoomInfo.isCompleted) {
+				return {
+					isCompleted: false,
+					message: newRoomInfo.message,
+				}
+			}
+
 			return {
 				isCompleted: true,
-				results: updatedConfig.results
+				message: Message.successUpdate("room config"),
+				results: newRoomInfo.results
 			}
 
 		} catch (error) {
@@ -460,6 +477,7 @@ class GameCardService extends BaseService {
 
 			return {
 				isCompleted: true,
+				message: Message.successGetAll(`Room ${roomId} results`),
 				results: {
 					scoreBoard: {
 						totalScore: {
@@ -504,6 +522,7 @@ class GameCardService extends BaseService {
 
 			return {
 				isCompleted: true,
+				message: Message.successUpdate("Room Status"),
 				results: closeRoomResult.results
 			}
 		} catch (error) {

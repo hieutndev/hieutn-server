@@ -1,8 +1,8 @@
 const BaseController = require("./BaseController");
 const ProjectService = require("../services/ProjectService");
-const Message = require("../utils/ResponseMessage");
+const Message = require("../utils/response-message");
 
-const s3Bucket = require("../configs/s3Bucket");
+const s3Bucket = require("../configs/s3-bucket");
 const generateUniqueString = require("../utils/generate-unique-string");
 
 class ProjectController extends BaseController {
@@ -38,13 +38,10 @@ class ProjectController extends BaseController {
 				})
 			}
 
-			return super.createSuccessResponse(res, 200, message, results)
+			return super.createResponse(res, 200, message, results)
 
 		} catch (error) {
-			return next({
-				status: 500,
-				error,
-			})
+			return super.createResponse(res, 500, error)
 		}
 	}
 
@@ -54,20 +51,14 @@ class ProjectController extends BaseController {
 			const { isCompleted, message, results } = await ProjectService.getAllProjects();
 
 			if (!isCompleted) {
-				return next({
-					status: 404,
-					message
-				})
+				return super.createResponse(res, 400, message);
 			}
 
-			return super.createSuccessResponse(res, 200, message, results)
+			return super.createResponse(res, 200, message, results)
 
 
 		} catch (error) {
-			return next({
-				status: 500,
-				error,
-			})
+			return super.createResponse(res, 500, error)
 		}
 	}
 
@@ -90,13 +81,10 @@ class ProjectController extends BaseController {
 				})
 			}
 
-			return super.createSuccessResponse(res, 200, message, results)
+			return super.createResponse(res, 200, message, results)
 
 		} catch (error) {
-			return next({
-				status: 500,
-				error,
-			})
+			return super.createResponse(res, 500, error)
 		}
 	}
 
@@ -108,20 +96,14 @@ class ProjectController extends BaseController {
 			const { isCompleted, message } = await ProjectService.updateProject(projectId, req.body, req.file);
 
 			if (!isCompleted) {
-				return next({
-					status: 404,
-					message,
-				})
+				return super.createResponse(res, 400, message);
 			}
 
 
-			return super.createSuccessResponse(res, 200, message)
+			return super.createResponse(res, 200, message)
 
 		} catch (error) {
-			return next({
-				status: 500,
-				error,
-			})
+			return super.createResponse(res, 500, error)
 		}
 	}
 
@@ -133,19 +115,13 @@ class ProjectController extends BaseController {
 			const { isCompleted, message } = await ProjectService.deleteProject(projectId);
 
 			if (!isCompleted) {
-				return next({
-					status: 404,
-					message,
-				})
+				return super.createResponse(res, 400, message);
 			}
 
-			return super.createSuccessResponse(res, 200, message)
+			return super.createResponse(res, 200, message)
 
 		} catch (error) {
-			return next({
-				status: 500,
-				error,
-			})
+			return super.createResponse(res, 500, error)
 		}
 	}
 
@@ -155,19 +131,13 @@ class ProjectController extends BaseController {
 			const { isCompleted, message, results } = await ProjectService.getAllProjectGroups();
 
 			if (!isCompleted) {
-				return next({
-					status: 404,
-					message,
-				})
+				return super.createResponse(res, 400, message);
 			}
 
-			return super.createSuccessResponse(res, 200, message, results)
+			return super.createResponse(res, 200, message, results)
 
 		} catch (error) {
-			return next({
-				status: 500,
-				error,
-			})
+			return super.createResponse(res, 500, error)
 		}
 	}
 
@@ -179,20 +149,14 @@ class ProjectController extends BaseController {
 
 
 			if (!isCompleted) {
-				return next({
-					status: 404,
-					message,
-				})
+				return super.createResponse(res, 400, message);
 			}
 
-			return super.createSuccessResponse(res, 200, message)
+			return super.createResponse(res, 200, message)
 
 
 		} catch (error) {
-			return next({
-				status: 500,
-				error,
-			})
+			return super.createResponse(res, 500, error)
 		}
 	}
 
@@ -205,19 +169,13 @@ class ProjectController extends BaseController {
 			const { isCompleted, message } = await ProjectService.updateProjectGroupInfo(groupId, newGroupTitle);
 
 			if (!isCompleted) {
-				return next({
-					status: 404,
-					message
-				})
+				return super.createResponse(res, 400, message);
 			}
 
-			return super.createSuccessResponse(res, 200, message);
+			return super.createResponse(res, 200, message);
 
 		} catch (error) {
-			return next({
-				status: 500,
-				error,
-			})
+			return super.createResponse(res, 500, error)
 		}
 	}
 
@@ -229,18 +187,12 @@ class ProjectController extends BaseController {
 			const { isCompleted, message } = await ProjectService.softDeleteProjectGroup(groupId);
 
 			if (!isCompleted) {
-				return next({
-					status: 404,
-					message
-				})
+				return super.createResponse(res, 400, message);
 			}
 
-			return super.createSuccessResponse(res, 200, message);
+			return super.createResponse(res, 200, message);
 		} catch (error) {
-			return next({
-				status: 500,
-				error
-			})
+			return super.createResponse(res, 500, error)
 		}
 
 	}
@@ -253,18 +205,12 @@ class ProjectController extends BaseController {
 			const { isCompleted, message } = await ProjectService.recoverProjectGroup(groupId);
 
 			if (!isCompleted) {
-				return next({
-					status: 404,
-					message
-				})
+				return super.createResponse(res, 400, message);
 			}
 
-			return super.createSuccessResponse(res, 200, message);
+			return super.createResponse(res, 200, message);
 		} catch (error) {
-			return next({
-				status: 500,
-				error
-			})
+			return super.createResponse(res, 500, error)
 		}
 
 	}
@@ -277,19 +223,13 @@ class ProjectController extends BaseController {
 			const { isCompleted, message } = await ProjectService.permanentDeleteProjectGroup(groupId);
 
 			if (!isCompleted) {
-				return next({
-					status: 404,
-					message
-				})
+				return super.createResponse(res, 400, message);
 			}
 
-			return super.createSuccessResponse(res, 200, message);
+			return super.createResponse(res, 200, message);
 
 		} catch (error) {
-			return next({
-				status: 500,
-				error
-			})
+			return super.createResponse(res, 500, error)
 		}
 
 	}

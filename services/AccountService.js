@@ -1,6 +1,6 @@
 const BaseService = require('./BaseService');
-const Message = require("../utils/ResponseMessage");
-const { accountSQL } = require("../utils/SQLQueryString");
+const Message = require("../utils/response-message");
+const { accountSQL } = require("../utils/sql-query-string");
 const randomString = require("../utils/generate-unique-string");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
@@ -291,6 +291,7 @@ class AccountService extends BaseService {
 					refresh_token: refreshToken,
 					user_id: accountDetails.results[0].user_id,
 					username: accountDetails.results[0].username,
+					role: accountDetails.results[0].role,
 				}
 			}
 
@@ -476,6 +477,33 @@ class AccountService extends BaseService {
 			}
 		}
 	}
+
+	async checkValidEmail(email) {
+		try {
+			const isHasEmail = await this.hasAccount(email, "email")
+
+			console.log(isHasEmail.results)
+			return {
+				isCompleted: true,
+				message: isHasEmail.isCompleted ? "" : isHasEmail.message,
+				results: {
+					isValid: isHasEmail.isCompleted,
+					emailInfo: isHasEmail.isCompleted ? {
+						email,
+						username: isHasEmail.results.username
+					} : {}
+				}
+
+			}
+
+		} catch (error) {
+			return {
+				isCompleted: false,
+				message: error,
+			}
+		}
+	}
+
 }
 
 module.exports = new AccountService()

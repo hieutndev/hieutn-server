@@ -13,19 +13,13 @@ class CertificationController extends BaseController {
 			const { isCompleted, message, results } = await CertificationService.getAll();
 
 			if (!isCompleted) {
-				return next({
-					status: 400,
-					message
-				})
+				return super.createResponse(res, 400, message)
 			}
 
-			return super.createSuccessResponse(res, 200, message, results)
+			return super.createResponse(res, 200, message, results)
 
 		} catch (error) {
-			return next({
-				status: 500,
-				error,
-			})
+			return super.createResponse(res, 500, error)
 		}
 	}
 
@@ -36,18 +30,12 @@ class CertificationController extends BaseController {
 			const { isCompleted, message, results } = await CertificationService.addNewCertification(req.body, req.file)
 
 			if (!isCompleted) {
-				return next({
-					status: 400,
-					message
-				})
+				return super.createResponse(res, 400, message)
 			}
 
-			return super.createSuccessResponse(res, 200, message, results)
+			return super.createResponse(res, 200, message, results)
 		} catch (error) {
-			return next({
-				status: 500,
-				error,
-			})
+			return super.createResponse(res, 500, error)
 		}
 	}
 
@@ -58,19 +46,13 @@ class CertificationController extends BaseController {
 			const { isCompleted, message, results } = await CertificationService.getCertificationDetails(certId, true);
 
 			if (!isCompleted) {
-				return next({
-					status: 400,
-					message
-				})
+				return super.createResponse(res, 400, message)
 			}
 
-			return super.createSuccessResponse(res, 200, message, results)
+			return super.createResponse(res, 200, message, results)
 
 		} catch (error) {
-			return next({
-				status: 500,
-				error,
-			})
+			return super.createResponse(res, 500, error)
 		}
 	}
 
@@ -85,19 +67,13 @@ class CertificationController extends BaseController {
 			} = await CertificationService.updateCertification(certId, req.body, req.file)
 
 			if (!isCompleted) {
-				return next({
-					status: 400,
-					message
-				})
+				return super.createResponse(res, 400, message)
 			}
 
-			return super.createSuccessResponse(res, 200, message || "test")
+			return super.createResponse(res, 200, message || "test")
 
 		} catch (error) {
-			return next({
-				status: 500,
-				error,
-			})
+			return super.createResponse(res, 500, error)
 		}
 	}
 
@@ -109,19 +85,13 @@ class CertificationController extends BaseController {
 			const { isCompleted, message } = await CertificationService.softDeleteCertification(certId);
 
 			if (!isCompleted) {
-				return next({
-					status: 400,
-					message
-				})
+				return super.createResponse(res, 400, message)
 			}
 
-			return super.createSuccessResponse(res, 200, message)
+			return super.createResponse(res, 200, message)
 
 		} catch (error) {
-			return next({
-				status: 500,
-				error,
-			})
+			return super.createResponse(res, 500, error)
 		}
 	}
 
@@ -133,20 +103,14 @@ class CertificationController extends BaseController {
 			const { isCompleted, message } = await CertificationService.recoverCertification(certId);
 
 			if (!isCompleted) {
-				return next({
-					status: 400,
-					message
-				})
+				return super.createResponse(res, 400, message)
 			}
 
-			return super.createSuccessResponse(res, 200, message)
+			return super.createResponse(res, 200, message)
 
 
 		} catch (error) {
-			return next({
-				status: 500,
-				error,
-			})
+			return super.createResponse(res, 500, error)
 		}
 	}
 
@@ -158,19 +122,13 @@ class CertificationController extends BaseController {
 			const { isCompleted, message } = await CertificationService.permanentDeleteCertification(certId);
 
 			if (!isCompleted) {
-				return next({
-					status: 400,
-					message
-				})
+				return super.createResponse(res, 400, message)
 			}
 
-			return super.createSuccessResponse(res, 200, message)
+			return super.createResponse(res, 200, message)
 
 		} catch (error) {
-			return next({
-				status: 500,
-				error,
-			})
+			return super.createResponse(res, 500, error)
 		}
 	}
 

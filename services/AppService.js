@@ -1,9 +1,9 @@
 const BaseService = require('./BaseService');
-const Message = require("../utils/ResponseMessage");
-const { appSQL } = require("../utils/SQLQueryString");
+const Message = require("../utils/response-message");
+const { appSQL } = require("../utils/sql-query-string");
 const randomUniqueString = require("../utils/generate-unique-string")
 
-const s3 = require("../configs/s3Bucket");
+const s3 = require("../configs/s3-bucket");
 
 class AppService extends BaseService {
 	constructor() {

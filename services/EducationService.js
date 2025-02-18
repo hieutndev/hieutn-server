@@ -1,7 +1,7 @@
 const BaseService = require("./BaseService");
-const Message = require("../utils/ResponseMessage");
+const Message = require("../utils/response-message");
 
-const { educationSQL } = require("../utils/SQLQueryString")
+const { educationSQL } = require("../utils/sql-query-string")
 
 class EducationService extends BaseService {
 	constructor() {

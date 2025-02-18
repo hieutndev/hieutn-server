@@ -1,8 +1,8 @@
 const BaseService = require("./BaseService")
 const randomUniqueString = require("../utils/generate-unique-string");
-const { certificationSQL } = require("../utils/SQLQueryString");
-const s3Bucket = require("../configs/s3Bucket");
-const Message = require("../utils/ResponseMessage");
+const { certificationSQL } = require("../utils/sql-query-string");
+const s3Bucket = require("../configs/s3-bucket");
+const Message = require("../utils/response-message");
 
 class CertificationService extends BaseService {
 	constructor() {

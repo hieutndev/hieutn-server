@@ -13,19 +13,13 @@ class EmploymentController extends BaseController {
 			const { isCompleted, message, results } = await EmploymentService.getListEmployment();
 
 			if (!isCompleted) {
-				return {
-					status: 400,
-					message,
-				}
+				return super.createResponse(res, 400, message)
 			}
 
-			return super.createSuccessResponse(res, 200, message, results)
+			return super.createResponse(res, 200, message, results)
 
 		} catch (error) {
-			return next({
-				status: 500,
-				error,
-			})
+			return super.createResponse(res, 500, error)
 		}
 	}
 
@@ -35,20 +29,14 @@ class EmploymentController extends BaseController {
 			const { isCompleted, message, results } = await EmploymentService.addNewEmployment(req.body);
 
 			if (!isCompleted) {
-				return {
-					status: 400,
-					message,
-				}
+				return super.createResponse(res, 400, message)
 			}
 
-			return super.createSuccessResponse(res, 200, message, results)
+			return super.createResponse(res, 200, message, results)
 
 
 		} catch (error) {
-			return next({
-				status: 500,
-				error,
-			})
+			return super.createResponse(res, 500, error)
 		}
 	}
 
@@ -62,20 +50,14 @@ class EmploymentController extends BaseController {
 			} = await EmploymentService.getEmploymentDetails(req.params.employmentId);
 
 			if (!isCompleted) {
-				return {
-					status: 400,
-					message,
-				}
+				return super.createResponse(res, 400, message)
 			}
 
-			return super.createSuccessResponse(res, 200, message, results)
+			return super.createResponse(res, 200, message, results)
 
 
 		} catch (error) {
-			return next({
-				status: 500,
-				error,
-			})
+			return super.createResponse(res, 500, error)
 		}
 	}
 
@@ -91,19 +73,13 @@ class EmploymentController extends BaseController {
 			} = await EmploymentService.updateEmploymentDetails(employmentId, req.body);
 
 			if (!isCompleted) {
-				return {
-					status: 400,
-					message,
-				}
+				return super.createResponse(res, 400, message)
 			}
 
-			return super.createSuccessResponse(res, 200, message, results)
+			return super.createResponse(res, 200, message, results)
 
 		} catch (error) {
-			return next({
-				status: 500,
-				error,
-			})
+			return super.createResponse(res, 500, error)
 		}
 	}
 
@@ -115,19 +91,13 @@ class EmploymentController extends BaseController {
 			const { isCompleted, message } = await EmploymentService.permanentDeleteEmployment(employmentId)
 
 			if (!isCompleted) {
-				return {
-					status: 400,
-					message,
-				}
+				return super.createResponse(res, 400, message)
 			}
 
-			return super.createSuccessResponse(res, 200, message)
+			return super.createResponse(res, 200, message)
 
 		} catch (error) {
-			return next({
-				status: 500,
-				error,
-			})
+			return super.createResponse(res, 500, error)
 		}
 	}
 
@@ -138,19 +108,13 @@ class EmploymentController extends BaseController {
 			const { isCompleted, message } = await EmploymentService.softDeleteEmployment(employmentId)
 
 			if (!isCompleted) {
-				return {
-					status: 400,
-					message,
-				}
+				return super.createResponse(res, 400, message)
 			}
 
-			return super.createSuccessResponse(res, 200, message)
+			return super.createResponse(res, 200, message)
 
 		} catch (error) {
-			return next({
-				status: 500,
-				error,
-			})
+			return super.createResponse(res, 500, error)
 		}
 	}
 
@@ -161,19 +125,13 @@ class EmploymentController extends BaseController {
 			const { isCompleted, message } = await EmploymentService.recoverEmployment(employmentId)
 
 			if (!isCompleted) {
-				return {
-					status: 400,
-					message,
-				}
+				return super.createResponse(res, 400, message)
 			}
 
-			return super.createSuccessResponse(res, 200, message)
+			return super.createResponse(res, 200, message)
 
 		} catch (error) {
-			return next({
-				status: 500,
-				error,
-			})
+			return super.createResponse(res, 500, error)
 		}
 	}
 }

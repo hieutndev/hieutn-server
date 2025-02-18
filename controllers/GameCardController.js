@@ -1,6 +1,6 @@
 const BaseController = require('./BaseController');
 const GameCardService = require('../services/GameCardService');
-const Message = require("../utils/ResponseMessage");
+const Message = require("../utils/response-message");
 
 class GameCardController extends BaseController {
 
@@ -13,19 +13,13 @@ class GameCardController extends BaseController {
 			const { isCompleted, message, results } = await GameCardService.getAllRooms();
 
 			if (isCompleted === false) {
-				return next({
-					status: 500,
-					message
-				});
+				return super.createResponse(res, 400, message)
 			}
 
-			return super.createSuccessResponse(res, 200, message, results);
+			return super.createResponse(res, 200, message, results);
 
 		} catch (error) {
-			return next({
-				status: 500,
-				error
-			});
+			return super.createResponse(res, 500, error)
 		}
 	}
 
@@ -36,19 +30,13 @@ class GameCardController extends BaseController {
 			const { isCompleted, message, results } = await GameCardService.getRoomInfo(roomId);
 
 			if (isCompleted === false) {
-				return next({
-					status: 400,
-					message
-				});
+				return super.createResponse(res, 400, message)
 			}
 
-			return super.createSuccessResponse(res, 200, Message.successGetOne(`Room ${roomId}`), results);
+			return super.createResponse(res, 200, message, results);
 
 		} catch (error) {
-			return next({
-				status: 500,
-				error,
-			})
+			return super.createResponse(res, 500, error)
 		}
 	}
 
@@ -59,18 +47,12 @@ class GameCardController extends BaseController {
 			const { isCompleted, message, results } = await GameCardService.createNewRoom(req.user_id, roomConfig);
 
 			if (isCompleted === false) {
-				return next({
-					status: 400,
-					message
-				});
+				return super.createResponse(res, 400, message)
 			}
 
-			return super.createSuccessResponse(res, 200, Message.successCreate("game card room"), results);
+			return super.createResponse(res, 200, message, results);
 		} catch (error) {
-			return next({
-				status: 500,
-				error,
-			})
+			return super.createResponse(res, 500, error)
 		}
 	}
 
@@ -82,13 +64,13 @@ class GameCardController extends BaseController {
 			const { isCompleted, message, results } = await GameCardService.getListPlayHistory(roomId);
 
 			if (isCompleted === false) {
-				return next({ status: 400, message });
+				return super.createResponse(res, 400, message);
 			}
 
-			return super.createSuccessResponse(res, 200, Message.successGetAll(`Room ${roomId} match results`), results);
+			return super.createResponse(res, 200, message, results);
 
 		} catch (error) {
-			return next({ status: 500, error })
+			return super.createResponse(res, 500, error)
 		}
 	}
 
@@ -99,30 +81,20 @@ class GameCardController extends BaseController {
 
 			const { player1Result, player2Result, player3Result, player4Result, twoPlayResults } = req.body;
 
-			const insertNewResult = await GameCardService.insertNewResult(roomId, player1Result, player2Result, player3Result, player4Result, twoPlayResults);
+			const {
+				isCompleted,
+				message,
+				results
+			} = await GameCardService.insertNewResult(roomId, player1Result, player2Result, player3Result, player4Result, twoPlayResults);
 
-			if (insertNewResult.isCompleted === false) {
-				return next({
-					status: 400,
-					message: insertNewResult.message
-				});
+			if (isCompleted === false) {
+				return super.createResponse(res, 400, message);
 			}
 
-			const roomMatchResults = await GameCardService.getListPlayHistory(roomId);
-
-			if (roomMatchResults.isCompleted === false) {
-				return next({
-					status: 400,
-					message: roomMatchResults.message
-				});
-
-			}
-
-			return super.createSuccessResponse(res, 200, Message.successCreate("match results"), roomMatchResults.results);
-
+			return super.createResponse(res, 200, message, results);
 
 		} catch (error) {
-			return next({ status: 500, error });
+			return super.createResponse(res, 500, error)
 		}
 	}
 
@@ -132,27 +104,15 @@ class GameCardController extends BaseController {
 
 			const { newConfig } = req.body;
 
-			const updateRoomConfig = await GameCardService.updateRoomConfig(roomId, newConfig);
+			const { isCompleted, message, results } = await GameCardService.updateRoomConfig(roomId, newConfig);
 
-			if (updateRoomConfig.isCompleted === false) {
-				return next({
-					status: 400,
-					message: updateRoomConfig.message
-				});
+			if (isCompleted === false) {
+				return super.createResponse(res, 400, message);
 			}
 
-			const roomDetails = await GameCardService.getRoomInfo(roomId);
-
-			if (!roomDetails.isCompleted) {
-				return next({
-					status: 400,
-					message: roomDetails.message
-				});
-			}
-
-			return super.createSuccessResponse(res, 200, Message.successUpdate("room config"), roomDetails.results);
+			return super.createResponse(res, 200, message, results);
 		} catch (error) {
-			return next({ status: 500, error });
+			return super.createResponse(res, 500, error)
 		}
 	}
 
@@ -160,18 +120,15 @@ class GameCardController extends BaseController {
 		try {
 			const { roomId } = req.params;
 
-			const roomResults = await GameCardService.getRoomResults(roomId);
+			const { isCompleted, message, results } = await GameCardService.getRoomResults(roomId);
 
-			if (!roomResults.isCompleted) {
-				return next({
-					status: 400,
-					message: roomResults.message
-				});
+			if (!isCompleted) {
+				return super.createResponse(res, 400, message);
 			}
 
-			return super.createSuccessResponse(res, 200, Message.successGetAll(`Room ${roomId} results`), roomResults.results);
+			return super.createResponse(res, 200, message, results);
 		} catch (error) {
-			return next({ status: 500, error });
+			return super.createResponse(res, 500, error)
 		}
 	}
 
@@ -179,18 +136,15 @@ class GameCardController extends BaseController {
 		try {
 			const { roomId } = req.params;
 
-			const closeRoomResult = await GameCardService.closeRoom(roomId);
+			const { isCompleted, message, results } = await GameCardService.closeRoom(roomId);
 
-			if (!closeRoomResult.isCompleted) {
-				return next({
-					status: 400,
-					message: closeRoomResult.message
-				});
+			if (!isCompleted) {
+				return super.createResponse(res, 400, message)
 			}
 
-			return super.createSuccessResponse(res, 200, Message.successUpdate("Room Status"), closeRoomResult.results);
+			return super.createResponse(res, 200, message, results);
 		} catch (error) {
-			return next({ status: 500, error });
+			return super.createResponse(res, 500, error)
 		}
 	}
 }

@@ -24,6 +24,7 @@ class MySQL {
 
 	async query(sqlString, values = []) {
 		try {
+			console.log(sqlString, values);
 			if (!Array.isArray(values)) {
 				return {
 					isCompleted: false,
@@ -54,6 +55,7 @@ class MySQL {
 		} catch (error) {
 
 			console.log("Error in mysql queryOne", error.code);
+			console.log(error)
 
 			if (typeof error !== 'string') {
 

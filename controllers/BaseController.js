@@ -1,14 +1,17 @@
-const mySLQ = require("../configs/mysql")
+const STATUS_TEXT = require("../constants/status-text")
 
 class BaseController {
 	constructor() {
 
 	}
 
-	async createSuccessResponse(res, status, message, results) {
+	async createResponse(res, status, message, results) {
+
+		console.log(message, typeof message)
+
 		return res.status(status).json({
-			status: "success",
-			message: message,
+			status: STATUS_TEXT[status],
+			message: typeof message === "string" ? message : `${message.name} - ${message.message}`,
 			results
 		});
 	}

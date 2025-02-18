@@ -15,20 +15,14 @@ class AppController extends BaseController {
 
 
 			if (!isCompleted) {
-				return next({
-					status: 400,
-					message
-				})
+				return super.createResponse(res, 400, message)
 			}
 
-			return super.createSuccessResponse(res, 200, message, results)
+			return super.createResponse(res, 200, message, results)
 
 
 		} catch (error) {
-			return next({
-				status: 500,
-				error,
-			})
+			return super.createResponse(res, 500, error)
 		}
 	}
 
@@ -40,18 +34,12 @@ class AppController extends BaseController {
 			const { isCompleted, message, results } = await AppService.getAppDetails(appId);
 
 			if (!isCompleted) {
-				return next({
-					status: 400,
-					message
-				})
+				return super.createResponse(res, 400, message)
 			}
 
-			return super.createSuccessResponse(res, 200, message, results)
+			return super.createResponse(res, 200, message, results)
 		} catch (error) {
-			return next({
-				status: 500,
-				error,
-			})
+			return super.createResponse(res, 500, error)
 		}
 	}
 
@@ -67,13 +55,10 @@ class AppController extends BaseController {
 				})
 			}
 
-			return super.createSuccessResponse(res, 200, message)
+			return super.createResponse(res, 200, message)
 
 		} catch (error) {
-			return next({
-				status: 500,
-				error,
-			})
+			return super.createResponse(res, 500, error)
 		}
 	}
 
@@ -91,13 +76,10 @@ class AppController extends BaseController {
 				})
 			}
 
-			return super.createSuccessResponse(res, 200, message)
+			return super.createResponse(res, 200, message)
 
 		} catch (error) {
-			return next({
-				status: 500,
-				error,
-			})
+			return super.createResponse(res, 500, error)
 		}
 	}
 
@@ -109,19 +91,13 @@ class AppController extends BaseController {
 			const { isCompleted, message } = await AppService.updateAppDisplayStatus(appId, req.body)
 
 			if (!isCompleted) {
-				return next({
-					status: 400,
-					message
-				})
+				return super.createResponse(res, 400, message)
 			}
 
-			return super.createSuccessResponse(res, 200, message);
+			return super.createResponse(res, 200, message);
 
 		} catch (error) {
-			return next({
-				status: 500,
-				error,
-			})
+			return super.createResponse(res, 500, error)
 		}
 	}
 
@@ -133,19 +109,13 @@ class AppController extends BaseController {
 			const { isCompleted, message } = await AppService.deleteApp(appId);
 
 			if (!isCompleted) {
-				return next({
-					status: 400,
-					message
-				})
+				return super.createResponse(res, 400, message)
 			}
 
-			return super.createSuccessResponse(res, 200, message)
+			return super.createResponse(res, 200, message)
 
 		} catch (error) {
-			return next({
-				status: 500,
-				error,
-			})
+			return super.createResponse(res, 500, error)
 		}
 	}
 }

@@ -18,12 +18,12 @@ class SocketController {
 		})
 	}
 
-	async createNewRoom({ created_by, roomConfig }) {
+	async gcCreateNewRoom({ created_by, roomConfig }) {
 
 		const createNewRoom = await GameCardService.createNewRoom(created_by, roomConfig);
 		if (createNewRoom.isCompleted) {
 			const getListRooms = await GameCardService.getAllRooms();
-			this.io.emit(SOCKET_EVENT_NAMES.CREATE_NEW_ROOM.SEND, {
+			this.io.emit(SOCKET_EVENT_NAMES.GAME_CARD.CREATE_NEW_ROOM.SEND, {
 				newRoomId: createNewRoom.results.newRoomId,
 				listRooms: getListRooms.results
 			});
@@ -31,7 +31,7 @@ class SocketController {
 
 	}
 
-	joinRoom(socket, { roomId, username }) {
+	gcJoinRoom(socket, { roomId, username }) {
 
 		socket.join(roomId.toString());
 		if (!this.currentInRooms.get(roomId)) {
@@ -40,23 +40,23 @@ class SocketController {
 			this.currentInRooms.set(roomId, Array.from(new Set([...this.currentInRooms.get(roomId), username])).filter((_v) => _v));
 		}
 
-		this.io.to(roomId.toString()).emit(SOCKET_EVENT_NAMES.PLAYER_CHANGE, {
+		this.io.to(roomId.toString()).emit(SOCKET_EVENT_NAMES.GAME_CARD.PLAYER_CHANGE, {
 			currentInRoom: this.currentInRooms.get(roomId).length,
 			playersInRoom: this.currentInRooms.get(roomId),
 		});
 	}
 
-	leaveRoom(socket, { roomId, username }) {
+	gcLeaveRoom(socket, { roomId, username }) {
 		socket.leave(roomId.toString());
 		this.currentInRooms.set(roomId, this.currentInRooms.get(roomId) ? [...this.currentInRooms.get(roomId).filter((_v) => _v !== username)] : []);
 
-		this.io.to(roomId.toString()).emit(SOCKET_EVENT_NAMES.PLAYER_CHANGE, {
+		this.io.to(roomId.toString()).emit(SOCKET_EVENT_NAMES.GAME_CARD.PLAYER_CHANGE, {
 			currentInRoom: this.currentInRooms.get(roomId).length,
 			playersInRoom: this.currentInRooms.get(roomId),
 		});
 	}
 
-	async createNewGCResult({
+	async gcCreateNewResult({
 								roomId,
 								player1Result,
 								player2Result,
@@ -71,7 +71,7 @@ class SocketController {
 			const roomResults = await GameCardService.getRoomResults(roomId);
 
 			if (roomResults.isCompleted) {
-				this.io.to(roomId.toString()).emit(SOCKET_EVENT_NAMES.CREATE_RESULT.SEND, {
+				this.io.to(roomId.toString()).emit(SOCKET_EVENT_NAMES.GAME_CARD.CREATE_RESULT.SEND, {
 					createdBy,
 					roomResults: roomResults.results
 				});
@@ -84,14 +84,14 @@ class SocketController {
 
 	}
 
-	async deleteMatchResult({ deleteBy, roomId, matchId }) {
+	async gcDeleteMatchResult({ deleteBy, roomId, matchId }) {
 		const deleteMatchResults = await GameCardService.deleteResults(roomId, matchId);
 
 		if (deleteMatchResults.isCompleted) {
 			const roomResults = await GameCardService.getRoomResults(roomId);
 
 			if (roomResults.isCompleted) {
-				this.io.to(roomId.toString()).emit(SOCKET_EVENT_NAMES.DELETE_MATCH_RESULTS.SEND, {
+				this.io.to(roomId.toString()).emit(SOCKET_EVENT_NAMES.GAME_CARD.DELETE_MATCH_RESULT.SEND, {
 					deleteBy,
 					roomResults: roomResults.results
 				});
@@ -101,7 +101,7 @@ class SocketController {
 		}
 	}
 
-	async updateRoomConfig({ roomId, updatedBy, newConfig }) {
+	async gcUpdateRoomConfig({ roomId, updatedBy, newConfig }) {
 		const updateRoomConfig = await GameCardService.updateRoomConfig(roomId, newConfig);
 
 		if (updateRoomConfig.isCompleted) {
@@ -109,7 +109,7 @@ class SocketController {
 
 			if (roomInfo.isCompleted) {
 
-				this.io.to(roomId.toString()).emit(SOCKET_EVENT_NAMES.UPDATE_ROOM_CONFIG.SEND, {
+				this.io.to(roomId.toString()).emit(SOCKET_EVENT_NAMES.GAME_CARD.UPDATE_ROOM_CONFIG.SEND, {
 					updatedBy,
 					roomDetails: roomInfo.results
 				});
@@ -122,19 +122,19 @@ class SocketController {
 		}
 	}
 
-	async closeRoom({ roomId, closedBy }) {
+	async gcCloseRoom({ roomId, closedBy }) {
 		const closeRoom = await GameCardService.closeRoom(roomId);
 
 		if (closeRoom.isCompleted) {
 
 			await Promise.all([GameCardService.getRoomInfo(roomId), GameCardService.getAllRooms()])
 				.then(([roomInfo, getListRooms]) => {
-					this.io.emit(SOCKET_EVENT_NAMES.CLOSE_ROOM.SEND, {
+					this.io.emit(SOCKET_EVENT_NAMES.GAME_CARD.CLOSE_ROOM.SEND, {
 						closedBy,
 						roomDetails: roomInfo.results,
 						listRooms: getListRooms.results
 					});
-					this.io.to(roomId.toString()).emit(SOCKET_EVENT_NAMES.CLOSE_ROOM.SEND, {
+					this.io.to(roomId.toString()).emit(SOCKET_EVENT_NAMES.GAME_CARD.CLOSE_ROOM.SEND, {
 						closedBy,
 						roomDetails: roomInfo.results
 					});
@@ -145,23 +145,21 @@ class SocketController {
 	}
 
 	start() {
-
-
 		this.io.on('connection', (socket) => {
 
-			socket.on(SOCKET_EVENT_NAMES.CREATE_NEW_ROOM.RECEIVE, async (roomData) => await this.createNewRoom(roomData))
+			socket.on(SOCKET_EVENT_NAMES.GAME_CARD.CREATE_NEW_ROOM.RECEIVE, async (roomData) => await this.gcCreateNewRoom(roomData))
 
-			socket.on(SOCKET_EVENT_NAMES.JOIN_CARDGAME_ROOM, (joinData) => this.joinRoom(socket, joinData))
+			socket.on(SOCKET_EVENT_NAMES.GAME_CARD.JOIN_ROOM, (joinData) => this.gcJoinRoom(socket, joinData))
 
-			socket.on(SOCKET_EVENT_NAMES.LEAVE_CARDGAME_ROOM, (leaveData) => this.leaveRoom(socket, leaveData))
+			socket.on(SOCKET_EVENT_NAMES.GAME_CARD.LEAVE_ROOM, (leaveData) => this.gcLeaveRoom(socket, leaveData))
 
-			socket.on(SOCKET_EVENT_NAMES.CREATE_RESULT.RECEIVE, async (resultData) => this.createNewGCResult(resultData))
+			socket.on(SOCKET_EVENT_NAMES.GAME_CARD.CREATE_RESULT.RECEIVE, async (resultData) => this.gcCreateNewResult(resultData))
 
-			socket.on(SOCKET_EVENT_NAMES.UPDATE_ROOM_CONFIG.RECEIVE, async (updateData) => await this.updateRoomConfig(updateData))
+			socket.on(SOCKET_EVENT_NAMES.GAME_CARD.UPDATE_ROOM_CONFIG.RECEIVE, async (updateData) => await this.gcUpdateRoomConfig(updateData))
 
-			socket.on(SOCKET_EVENT_NAMES.DELETE_MATCH_RESULTS.RECEIVE, async (deleteData) => this.deleteMatchResult(deleteData))
+			socket.on(SOCKET_EVENT_NAMES.GAME_CARD.DELETE_MATCH_RESULT.RECEIVE, async (deleteData) => this.gcDeleteMatchResult(deleteData))
 
-			socket.on(SOCKET_EVENT_NAMES.CLOSE_ROOM.RECEIVE, async (closeData) => await this.closeRoom(closeData))
+			socket.on(SOCKET_EVENT_NAMES.GAME_CARD.CLOSE_ROOM.RECEIVE, async (closeData) => await this.gcCloseRoom(closeData))
 
 			socket.on("disconnect", () => {
 

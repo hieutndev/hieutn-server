@@ -1,6 +1,6 @@
 const BaseController = require("./BaseController")
 const EducationService = require("../services/EducationService")
-const Message = require("../utils/ResponseMessage")
+const Message = require("../utils/response-message")
 
 class EducationController extends BaseController {
 	constructor() {
@@ -13,19 +13,13 @@ class EducationController extends BaseController {
 			const { isCompleted, message, results } = await EducationService.getAllEducation();
 
 			if (!isCompleted) {
-				return next({
-					status: 400,
-					message,
-				})
+				return super.createResponse(res, 400, message)
 			}
 
-			return super.createSuccessResponse(res, 200, message, results)
+			return super.createResponse(res, 200, message, results)
 
 		} catch (error) {
-			return next({
-				status: 500,
-				error,
-			})
+			return super.createResponse(res, 500, error)
 		}
 	}
 
@@ -37,19 +31,13 @@ class EducationController extends BaseController {
 			const { isCompleted, message, results } = await EducationService.getEducationDetails(educationId);
 
 			if (!isCompleted) {
-				return next({
-					status: 400,
-					message,
-				})
+				return super.createResponse(res, 400, message)
 			}
 
-			return super.createSuccessResponse(res, 200, message, results)
+			return super.createResponse(res, 200, message, results)
 
 		} catch (error) {
-			return next({
-				status: 500,
-				error,
-			})
+			return super.createResponse(res, 500, error)
 		}
 	}
 
@@ -58,18 +46,12 @@ class EducationController extends BaseController {
 			const { isCompleted, message, results } = await EducationService.addNewEducation(req.body);
 
 			if (!isCompleted) {
-				return next({
-					status: 400,
-					message,
-				})
+				return super.createResponse(res, 400, message)
 			}
 
-			return super.createSuccessResponse(res, 200, message, results)
+			return super.createResponse(res, 200, message, results)
 		} catch (error) {
-			return next({
-				status: 500,
-				error,
-			})
+			return super.createResponse(res, 500, error)
 		}
 	}
 
@@ -84,19 +66,13 @@ class EducationController extends BaseController {
 			} = await EducationService.updateEducationDetails(educationId, req.body);
 
 			if (!isCompleted) {
-				return next({
-					status: 400,
-					message,
-				})
+				return super.createResponse(res, 400, message)
 			}
 
-			return super.createSuccessResponse(res, 200, message)
+			return super.createResponse(res, 200, message)
 
 		} catch (error) {
-			return next({
-				status: 500,
-				error,
-			})
+			return super.createResponse(res, 500, error)
 		}
 	}
 
@@ -108,19 +84,13 @@ class EducationController extends BaseController {
 			const { isCompleted, message } = await EducationService.softDeleteEducation(educationId);
 
 			if (!isCompleted) {
-				return next({
-					status: 400,
-					message,
-				})
+				return super.createResponse(res, 400, message)
 			}
 
-			return super.createSuccessResponse(res, 200, message)
+			return super.createResponse(res, 200, message)
 
 		} catch (error) {
-			return next({
-				status: 500,
-				error,
-			})
+			return super.createResponse(res, 500, error)
 		}
 	}
 
@@ -132,19 +102,13 @@ class EducationController extends BaseController {
 			const { isCompleted, message } = await EducationService.permanentDeleteEducation(educationId);
 
 			if (!isCompleted) {
-				return next({
-					status: 400,
-					message,
-				})
+				return super.createResponse(res, 400, message)
 			}
 
-			return super.createSuccessResponse(res, 200, message)
+			return super.createResponse(res, 200, message)
 
 		} catch (error) {
-			return next({
-				status: 500,
-				error,
-			})
+			return super.createResponse(res, 500, error)
 		}
 	}
 
@@ -156,19 +120,13 @@ class EducationController extends BaseController {
 			const { isCompleted, message } = await EducationService.recoverEducation(educationId);
 
 			if (!isCompleted) {
-				return next({
-					status: 400,
-					message,
-				})
+				return super.createResponse(res, 400, message)
 			}
 
-			return super.createSuccessResponse(res, 200, message)
+			return super.createResponse(res, 200, message)
 
 		} catch (error) {
-			return next({
-				status: 500,
-				error,
-			})
+			return super.createResponse(res, 500, error)
 		}
 	}
 }

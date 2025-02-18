@@ -1,7 +1,7 @@
 const BaseService = require("./BaseService");
-const { projectSQL } = require("../utils/SQLQueryString")
-const s3Bucket = require("../configs/s3Bucket");
-const Message = require("../utils/ResponseMessage");
+const { projectSQL } = require("../utils/sql-query-string")
+const s3Bucket = require("../configs/s3-bucket");
+const Message = require("../utils/response-message");
 const generateUniqueString = require("../utils/generate-unique-string");
 
 class ProjectService extends BaseService {

@@ -24,19 +24,13 @@ class AccountController extends BaseController {
 
 
 			if (!isCompleted) {
-				return next({
-					status: 400,
-					message
-				})
+				return super.createResponse(res, 400, message)
 			}
 
-			return super.createSuccessResponse(res, 201, message)
+			return super.createResponse(res, 201, message)
 
 		} catch (error) {
-			return next({
-				status: 500,
-				error
-			})
+			return super.createResponse(res, 500, error)
 		}
 	}
 
@@ -46,25 +40,18 @@ class AccountController extends BaseController {
 			const { isCompleted, message, results } = await AccountService.signIn(req.body);
 
 			if (!isCompleted) {
-				return next({
-					status: 400,
-					message
-				})
+				return super.createResponse(res, 400, message)
 			}
 
-			return super.createSuccessResponse(res, 200, message, results)
+			return super.createResponse(res, 200, message, results)
 
 		} catch (error) {
-			return next({
-				status: 500,
-				error
-			})
+			return super.createResponse(res, 500, error)
 		}
 	}
 
 	async getNewAccessToken(req, res, next) {
 		try {
-
 			const {
 				isCompleted,
 				message,
@@ -72,19 +59,13 @@ class AccountController extends BaseController {
 			} = await AccountService.getNewAccessToken(req.user_id, req.refresh_token);
 
 			if (!isCompleted) {
-				return next({
-					status: 400,
-					message
-				})
+				return super.createResponse(res, 400, message)
 			}
 
-			return super.createSuccessResponse(res, 200, message, results)
+			return super.createResponse(res, 200, message, results)
 
 		} catch (error) {
-			return next({
-				status: 500,
-				error
-			})
+			return super.createResponse(res, 500, error)
 		}
 	}
 
@@ -94,19 +75,14 @@ class AccountController extends BaseController {
 			const { isCompleted, message, results } = await AccountService.getListAccounts();
 
 			if (!isCompleted) {
-				return next({
-					status: 400,
-					message
-				})
+				return super.createResponse(res, 400, message)
+
 			}
 
-			return super.createSuccessResponse(res, 200, message, results)
+			return super.createResponse(res, 200, message, results)
 
 		} catch (error) {
-			return next({
-				status: 500,
-				error
-			})
+			return super.createResponse(res, 500, error)
 		}
 	}
 
@@ -120,20 +96,30 @@ class AccountController extends BaseController {
 			const { isCompleted, message } = await AccountService.updateAccountStatus(accountId, action)
 
 			if (!isCompleted) {
-				return next({
-					status: 400,
-					message
-				})
+				return super.createResponse(res, 400, message)
 			}
 
-			return super.createSuccessResponse(res, 200, message)
+			return super.createResponse(res, 200, message)
 
 
 		} catch (error) {
-			return next({
-				status: 500,
-				error,
-			})
+			return super.createResponse(res, 500, error)
+		}
+	}
+
+	async checkValidEmail(req, res, next) {
+		try {
+
+			const { isCompleted, message, results } = await AccountService.checkValidEmail(req.query.email);
+
+			if (!isCompleted) {
+				return super.createResponse(res, 400, message)
+			}
+
+			return super.createResponse(res, 200, message, results)
+
+		} catch (error) {
+			return super.createResponse(res, 500, error)
 		}
 	}
 }

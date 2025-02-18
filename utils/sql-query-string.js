@@ -65,6 +65,32 @@ const QueryString = {
                     WHERE room_id = ?`,
 
 	},
+	badmintonSQL: {
+		getAllMatch: `SELECT bm.*,
+                             bmc.*,
+                             u1.username AS umpire_judge_name,
+                             u2.username AS service_judge_name
+                      FROM bmt_match_configs bmc
+                               JOIN badminton_matches bm ON bmc.match_id = bm.match_id
+                               LEFT JOIN accounts u1 ON bmc.umpire_judge = u1.email
+                               LEFT JOIN accounts u2 ON bmc.service_judge = u2.email`,
+		getMatchInfo: `SELECT bm.*,
+                              bmc.*,
+                              u1.username AS umpire_judge_name,
+                              u2.username AS service_judge_name,
+                              u3.username AS username
+                       FROM bmt_match_configs bmc
+                                JOIN badminton_matches bm ON bmc.match_id = bm.match_id
+                                LEFT JOIN accounts u1 ON bmc.umpire_judge = u1.email
+                                LEFT JOIN accounts u2 ON bmc.service_judge = u2.email
+                                LEFT JOIN accounts u3 ON u3.user_id = bm.created_by
+                       WHERE bm.match_id = ?`,
+		createNewMatch: `INSERT INTO badminton_matches (match_title, created_by)
+                         VALUES (?, ?)`,
+		setMatchConfig: `INSERT INTO bmt_match_configs (match_id, score_format, max_time, player1_name, player2_name,
+                                                        umpire_judge, service_judge)
+                         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+	},
 	projectSQL: {
 		getAllProjects: `SELECT pj.id,
                                 pj.project_fullname,
