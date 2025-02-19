@@ -20,7 +20,9 @@ class ProjectController extends BaseController {
 				end_date,
 				short_description,
 				article_body,
-				group_id
+				group_id,
+				github_link,
+				demo_link
 			} = req.body;
 
 
@@ -28,7 +30,7 @@ class ProjectController extends BaseController {
 				isCompleted,
 				message,
 				results
-			} = await ProjectService.createNewProject(project_fullname, project_shortname, start_date, end_date, short_description, article_body, group_id, req.file)
+			} = await ProjectService.createNewProject(project_fullname, project_shortname, start_date, end_date, short_description, article_body, group_id, req.file, github_link, demo_link)
 
 			if (!isCompleted) {
 				return next({

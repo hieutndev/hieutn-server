@@ -111,8 +111,8 @@ const QueryString = {
                             WHERE proj.id = ?`,
 
 		createNewProject: `INSERT INTO projects (project_fullname, project_shortname, start_date, end_date,
-                                                 short_description, project_thumbnail, group_id)
-                           VALUES (?, ?, ?, ?, ?, ?, ?)`,
+                                                 short_description, project_thumbnail, group_id, github_link, demo_link)
+                           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		createProjectArticle: `INSERT INTO project_articles (project_id, article_body)
                                VALUES (?, ?)`,
 		updateProjectDetails: `UPDATE projects
@@ -122,6 +122,8 @@ const QueryString = {
                                    end_date          = ?,
                                    short_description = ?,
                                    group_id          = ?,
+                                   github_link       = ?,
+                                   demo_link         = ?,
                                    updated_at        = CURRENT_TIMESTAMP
                                WHERE id = ?`,
 		updateArticle: `UPDATE project_articles

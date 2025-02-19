@@ -10,9 +10,9 @@ class ProjectService extends BaseService {
 		super();
 	}
 
-	async insertProject(project_fullname, project_shortname, start_date, end_date, short_description, project_thumbnail, group_id) {
+	async insertProject(project_fullname, project_shortname, start_date, end_date, short_description, project_thumbnail, group_id, github_link, demo_link) {
 		try {
-			const insertStatus = await super.query(projectSQL.createNewProject, [project_fullname, project_shortname, start_date, end_date, short_description, project_thumbnail, group_id]);
+			const insertStatus = await super.query(projectSQL.createNewProject, [project_fullname, project_shortname, start_date, end_date, short_description, project_thumbnail, group_id, github_link, demo_link]);
 
 			if (!insertStatus.isCompleted) {
 				return {
@@ -57,11 +57,11 @@ class ProjectService extends BaseService {
 		}
 	}
 
-	async createNewProject(project_fullname, project_shortname, start_date, end_date, short_description, article_body, group_id, thumbnail_file) {
+	async createNewProject(project_fullname, project_shortname, start_date, end_date, short_description, article_body, group_id, thumbnail_file, github_link, demo_link) {
 		try {
 			const imageName = generateUniqueString();
 
-			const createProject = await this.insertProject(project_fullname, project_shortname, start_date, end_date, short_description, imageName, group_id);
+			const createProject = await this.insertProject(project_fullname, project_shortname, start_date, end_date, short_description, imageName, group_id, github_link, demo_link);
 
 			if (!createProject.isCompleted) {
 				return {
@@ -223,12 +223,14 @@ class ProjectService extends BaseService {
 		short_description,
 		article_body,
 		group_id,
+		github_link,
+		demo_link,
 		isChangeThumbnail,
 		isChangeArticle,
 	}, thumbnailFile) {
 		try {
 
-			const updateProjectDetails = await super.query(projectSQL.updateProjectDetails, [project_fullname, project_shortname, start_date, end_date, short_description, group_id !== 'null' ? group_id : null, projectId]);
+			const updateProjectDetails = await super.query(projectSQL.updateProjectDetails, [project_fullname, project_shortname, start_date, end_date, short_description, group_id !== 'null' ? group_id : null, github_link, demo_link, projectId]);
 
 			if (!updateProjectDetails.isCompleted) {
 				return {
