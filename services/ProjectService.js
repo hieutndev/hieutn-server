@@ -3,6 +3,7 @@ const { projectSQL } = require("../utils/sql-query-string")
 const s3Bucket = require("../configs/s3-bucket");
 const Message = require("../utils/response-message");
 const generateUniqueString = require("../utils/generate-unique-string");
+const { compressText, decompressText } = require("../utils/zlib");
 
 class ProjectService extends BaseService {
 
@@ -36,7 +37,10 @@ class ProjectService extends BaseService {
 
 	async insertArticle(projectId, articleBody) {
 		try {
-			const insertStatus = await super.query(projectSQL.createProjectArticle, [projectId, articleBody]);
+
+			const compress = compressText(articleBody);
+
+			const insertStatus = await super.query(projectSQL.createProjectArticle, [projectId, compress]);
 
 			if (!insertStatus.isCompleted) {
 				return {
@@ -148,6 +152,7 @@ class ProjectService extends BaseService {
 				message: Message.successGetOne("project"),
 				results: {
 					...projectDetails.results[0],
+					article_body: decompressText(projectDetails.results[0].article_body),
 					project_thumbnail: getProjectThumbnailUrl,
 					project_thumbnail_name: projectDetails.results[0].project_thumbnail
 				}
@@ -192,7 +197,10 @@ class ProjectService extends BaseService {
 	async updateProjectArticle(isChangeArticle, projectId, article_body) {
 		try {
 			if (isChangeArticle === "true") {
-				const updateArticle = await super.query(projectSQL.updateArticle, [article_body, projectId]);
+
+				const compress = compressText(article_body);
+
+				const updateArticle = await super.query(projectSQL.updateArticle, [compress, projectId]);
 
 				if (!updateArticle.isCompleted) {
 					return {

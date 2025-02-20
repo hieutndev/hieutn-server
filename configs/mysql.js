@@ -24,7 +24,6 @@ class MySQL {
 
 	async query(sqlString, values = []) {
 		try {
-			console.log(sqlString, values);
 			if (!Array.isArray(values)) {
 				return {
 					isCompleted: false,

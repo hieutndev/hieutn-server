@@ -3,7 +3,7 @@ const router = express.Router();
 
 const multer = require("multer");
 const storage = multer.memoryStorage();
-const upload = multer({ storage: storage })
+const upload = multer({ storage: storage, limits: { fileSize: 50 * 1024 * 1024 } })
 
 const ProjectController = require('../controllers/ProjectController');
 const { accessTokenChecker } = require("../middlewares/token-middlewares");
