@@ -236,6 +236,7 @@ class EducationService extends BaseService {
 			}
 		}
 	}
+	
 }
 
 module.exports = new EducationService();

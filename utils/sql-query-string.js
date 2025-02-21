@@ -109,12 +109,20 @@ const QueryString = {
                             FROM projects as proj
                                      JOIN project_articles as article ON proj.id = article.project_id
                             WHERE proj.id = ?`,
-
+		getListProjectImages: `SELECT *
+                               FROM project_images
+                               WHERE project_id = ?`,
 		createNewProject: `INSERT INTO projects (project_fullname, project_shortname, start_date, end_date,
                                                  short_description, project_thumbnail, group_id, github_link, demo_link)
                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		createProjectArticle: `INSERT INTO project_articles (project_id, article_body)
                                VALUES (?, ?)`,
+		insertProjectImages: `INSERT INTO project_images (project_id, image_name)
+                              VALUES (?, ?)`,
+		deleteProjectImage: `DELETE
+                             FROM project_images
+                             WHERE project_id = ?
+                               AND image_name = ? `,
 		updateProjectDetails: `UPDATE projects
                                SET project_fullname  = ?,
                                    project_shortname = ?,

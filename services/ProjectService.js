@@ -61,9 +61,79 @@ class ProjectService extends BaseService {
 		}
 	}
 
-	async createNewProject(project_fullname, project_shortname, start_date, end_date, short_description, article_body, group_id, thumbnail_file, github_link, demo_link) {
+	async uploadProjectImageToS3(imageData) {
 		try {
 			const imageName = generateUniqueString();
+			await s3Bucket.putObject(imageName, imageData, true, "cover")
+
+			return {
+				imageName,
+			}
+		} catch (error) {
+			throw new Error(error)
+		}
+
+	}
+
+	async removeImagesOnS3(listImageNames) {
+		return await Promise.all(listImageNames.map(async (imageName) => {
+			await s3Bucket.deleteObject(imageName);
+		}))
+	}
+
+	async removeImageOnDB(projectId, listImageNames) {
+		const mapQueryString = listImageNames.map(() => projectSQL.deleteProjectImage).join(";");
+		const mapQueryValue = listImageNames.map((imageName) => [projectId, imageName]).flat();
+
+		return await super.queryMany(mapQueryString, mapQueryValue);
+
+	}
+
+	async insertListImageNamesToDB(projectId, listImageName) {
+
+
+		const mapListImage = listImageName.map(() => projectSQL.insertProjectImages).join(";");
+		const mapListValue = listImageName.map((image) => [projectId, image.imageName]).flat();
+
+		const insertStatus = await super.queryMany(mapListImage, mapListValue);
+
+		if (!insertStatus.isCompleted) {
+			throw new Error(insertStatus.message);
+		}
+
+	}
+
+	async getListProjectImages(projectId) {
+		const listProjectImages = await super.query(projectSQL.getListProjectImages, [projectId]);
+
+		if (!listProjectImages.isCompleted) {
+			throw new Error(listProjectImages.message);
+		}
+
+		return await Promise.all(listProjectImages.results.map(async (image) => ({
+			...image,
+			image_url: await s3Bucket.getObject(image.image_name)
+		})));
+
+	}
+
+	async createNewProject({
+							   project_fullname,
+							   project_shortname,
+							   start_date,
+							   end_date,
+							   short_description,
+							   article_body,
+							   group_id,
+							   github_link,
+							   demo_link
+						   }, thumbnail_file, project_images) {
+		try {
+			const { imageName } = await this.uploadProjectImageToS3(thumbnail_file);
+
+			const listImageName = await Promise.all(project_images.map(async (image) => {
+				return this.uploadProjectImageToS3(image);
+			}));
 
 			const createProject = await this.insertProject(project_fullname, project_shortname, start_date, end_date, short_description, imageName, group_id, github_link, demo_link);
 
@@ -76,15 +146,14 @@ class ProjectService extends BaseService {
 
 			const createArticle = await this.insertArticle(createProject.results.insertId, article_body);
 
+			await this.insertListImageNamesToDB(createProject.results.insertId, listImageName);
+
 			if (!createArticle.isCompleted) {
 				return {
 					isCompleted: false,
 					message: createArticle.message,
 				}
 			}
-
-
-			await s3Bucket.putObject(imageName, thumbnail_file, true, "cover")
 
 			return {
 				isCompleted: true,
@@ -147,6 +216,8 @@ class ProjectService extends BaseService {
 
 			const getProjectThumbnailUrl = await s3Bucket.getObject(projectDetails.results[0].project_thumbnail);
 
+			const getListProjectImages = await this.getListProjectImages(projectId);
+
 			return {
 				isCompleted: true,
 				message: Message.successGetOne("project"),
@@ -154,7 +225,8 @@ class ProjectService extends BaseService {
 					...projectDetails.results[0],
 					article_body: decompressText(projectDetails.results[0].article_body),
 					project_thumbnail: getProjectThumbnailUrl,
-					project_thumbnail_name: projectDetails.results[0].project_thumbnail
+					project_thumbnail_name: projectDetails.results[0].project_thumbnail,
+					project_images: getListProjectImages
 				}
 			}
 		} catch (error) {
@@ -166,11 +238,10 @@ class ProjectService extends BaseService {
 		}
 	}
 
-
-	async updateProjectThumbnail(isChangeThumbnail, projectId, thumbnailFile) {
+	async updateProjectThumbnail(is_change_thumbnail, project_id, thumbnail_file) {
 		try {
-			if (isChangeThumbnail === "true") {
-				const projectDetails = await this.getProjectDetails(projectId);
+			if (is_change_thumbnail === "true") {
+				const projectDetails = await this.getProjectDetails(project_id);
 
 				if (!projectDetails.isCompleted) {
 					return {
@@ -179,7 +250,7 @@ class ProjectService extends BaseService {
 					}
 				}
 
-				await s3Bucket.putObject(projectDetails.results.project_thumbnail_name, thumbnailFile, true, "cover");
+				await s3Bucket.putObject(projectDetails.results.project_thumbnail_name, thumbnail_file, true, "cover");
 
 			}
 			return {
@@ -194,13 +265,13 @@ class ProjectService extends BaseService {
 		}
 	}
 
-	async updateProjectArticle(isChangeArticle, projectId, article_body) {
+	async updateProjectArticle(is_change_article, project_id, article_body) {
 		try {
-			if (isChangeArticle === "true") {
+			if (is_change_article === "true") {
 
 				const compress = compressText(article_body);
 
-				const updateArticle = await super.query(projectSQL.updateArticle, [compress, projectId]);
+				const updateArticle = await super.query(projectSQL.updateArticle, [compress, project_id]);
 
 				if (!updateArticle.isCompleted) {
 					return {
@@ -223,7 +294,7 @@ class ProjectService extends BaseService {
 		}
 	}
 
-	async updateProject(projectId, {
+	async updateProjectDetails(project_id, {
 		project_fullname,
 		project_shortname,
 		start_date,
@@ -233,12 +304,14 @@ class ProjectService extends BaseService {
 		group_id,
 		github_link,
 		demo_link,
-		isChangeThumbnail,
-		isChangeArticle,
-	}, thumbnailFile) {
+		is_change_thumbnail,
+		is_change_article,
+		remove_images,
+	}, thumbnail_file, project_images) {
 		try {
 
-			const updateProjectDetails = await super.query(projectSQL.updateProjectDetails, [project_fullname, project_shortname, start_date, end_date, short_description, group_id !== 'null' ? group_id : null, github_link, demo_link, projectId]);
+
+			const updateProjectDetails = await super.query(projectSQL.updateProjectDetails, [project_fullname, project_shortname, start_date, end_date, short_description, group_id !== 'null' ? group_id : null, github_link, demo_link, project_id]);
 
 			if (!updateProjectDetails.isCompleted) {
 				return {
@@ -246,8 +319,7 @@ class ProjectService extends BaseService {
 					message: updateProjectDetails.message,
 				}
 			}
-
-			const [updateThumbnail, updateArticle] = await Promise.all([this.updateProjectThumbnail(isChangeThumbnail, projectId, thumbnailFile), this.updateProjectArticle(isChangeArticle, projectId, article_body)]);
+			const [updateThumbnail, updateArticle] = await Promise.all([this.updateProjectThumbnail(is_change_thumbnail, project_id, thumbnail_file), this.updateProjectArticle(is_change_article, project_id, article_body)]);
 
 			if (!updateThumbnail.isCompleted) {
 				return {
@@ -262,6 +334,21 @@ class ProjectService extends BaseService {
 					message: updateArticle.message,
 				}
 			}
+
+			const removeImages = JSON.parse(remove_images);
+
+			if (removeImages.length > 0) {
+				await Promise.all([this.removeImagesOnS3(removeImages), this.removeImageOnDB(project_id, removeImages)]);
+			}
+
+			if (project_images && project_images.length > 0) {
+				const listImageName = await Promise.all(project_images.map(async (image) => {
+					return this.uploadProjectImageToS3(image);
+				}));
+
+				await this.insertListImageNamesToDB(project_id, listImageName);
+			}
+
 
 			return {
 				isCompleted: true,
@@ -280,7 +367,8 @@ class ProjectService extends BaseService {
 	async deleteProject(projectId) {
 		try {
 
-			const projectDetails = await super.query(projectSQL.getProjectDetails, [projectId]);
+			const [projectDetails, listProjectImages] = await Promise.all([super.query(projectSQL.getProjectDetails, [projectId]), await super.query(projectSQL.getListProjectImages, [projectId])]);
+
 
 			if (!projectDetails.isCompleted) {
 				return {
@@ -289,7 +377,17 @@ class ProjectService extends BaseService {
 				}
 			}
 
-			await Promise.all([s3Bucket.deleteObject(projectDetails.results[0].project_thumbnail), super.queryMany(projectSQL.deleteProject, [projectId, projectId])]);
+			if (!listProjectImages.isCompleted) {
+				return {
+					isCompleted: false,
+					message: projectDetails.message,
+				}
+			}
+
+			const listImageNames = listProjectImages.results.map((image) => image.image_name);
+
+
+			await Promise.all([this.removeImagesOnS3(listImageNames), this.removeImageOnDB(projectId, listImageNames), s3Bucket.deleteObject(projectDetails.results[0].project_thumbnail), super.queryMany(projectSQL.deleteProject, [projectId, projectId])]);
 
 			return {
 				isCompleted: true,
@@ -479,6 +577,7 @@ class ProjectService extends BaseService {
 			}
 		}
 	}
+
 }
 
 

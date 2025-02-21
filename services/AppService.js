@@ -226,8 +226,7 @@ class AppService extends BaseService {
 			}
 		}
 	}
-
-
+	
 }
 
 module.exports = new AppService()

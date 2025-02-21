@@ -12,25 +12,11 @@ class ProjectController extends BaseController {
 
 	async createNewProject(req, res, next) {
 		try {
-
-			const {
-				project_fullname,
-				project_shortname,
-				start_date,
-				end_date,
-				short_description,
-				article_body,
-				group_id,
-				github_link,
-				demo_link
-			} = req.body;
-
-
 			const {
 				isCompleted,
 				message,
 				results
-			} = await ProjectService.createNewProject(project_fullname, project_shortname, start_date, end_date, short_description, article_body, group_id, req.file, github_link, demo_link)
+			} = await ProjectService.createNewProject(req.body, req.files.project_thumbnail && req.files.project_thumbnail[0], req.files.project_images)
 
 			if (!isCompleted) {
 				return next({
@@ -95,7 +81,10 @@ class ProjectController extends BaseController {
 
 			const { projectId } = req.params;
 
-			const { isCompleted, message } = await ProjectService.updateProject(projectId, req.body, req.file);
+			const {
+				isCompleted,
+				message
+			} = await ProjectService.updateProjectDetails(projectId, req.body, req.files.project_thumbnail && req.files.project_thumbnail[0], req.files.project_images);
 
 			if (!isCompleted) {
 				return super.createResponse(res, 400, message);
