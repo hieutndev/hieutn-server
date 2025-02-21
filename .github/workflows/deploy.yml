@@ -1,0 +1,70 @@
+name: Auto Deploy in VPS after Push in Production
+
+on:
+  push:
+    branches:
+      - release
+jobs:
+  deploy:
+    name: Deploy project with Nginx
+    permissions:
+      deployments: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: "actions/checkout@v2"
+        with:
+          ref: release
+          token: ${{ secrets.PERSONAL_GITHUB_TOKEN }}
+      - name: Create GitHub deployment
+        uses: chrnorm/deployment-action@v2
+        id: deployment
+        with:
+          token: "${{ github.token }}"
+          environment-url: ${{ vars.MY_APP }}
+          environment: production
+      - name: Set up SSH Key and Deploy my App on Server
+        # run: |
+        uses: appleboy/ssh-action@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.PERSONAL_GITHUB_TOKEN }}
+        with:
+          host: ${{ secrets.VPS_IP }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          passphrase: ${{ secrets.SSH_PASSPHRASE }}
+          password: ${{ secrets.SSH_PASSWORD }}
+          port: 22
+          script: |
+            eval $(ssh-agent -s)
+            ssh-add ~/.ssh/id_ed25519
+            cd /root/hieutn-server
+            
+            curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.4/install.sh | bash
+            export NVM_DIR="$HOME/.nvm"
+            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+            nvm install --lts
+            nvm use --lts  
+            npm install -g pm2
+            
+            git pull origin release
+            
+            pm2 restart 0 --update-env
+
+      - name: Update deployment Status (success)
+        if: success()
+        uses: chrnorm/deployment-status@v2
+        with:
+          token: "${{ github.token }}"
+          environment-url: ${{ vars.MY_APP }}
+          state: "success"
+          deployment-id: ${{ steps.deployment.outputs.deployment_id }}
+
+      - name: Update deployment status (failure)
+        if: failure()
+        uses: chrnorm/deployment-status@v2
+        with:
+          token: "${{ github.token }}"
+          environment-url: ${{ vars.MY_APP }}
+          state: "failure"
+          deployment-id: ${{ steps.deployment.outputs.deployment_id }}
