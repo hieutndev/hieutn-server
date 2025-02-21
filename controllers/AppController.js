@@ -62,12 +62,12 @@ class AppController extends BaseController {
 		}
 	}
 
-	async updateAppInformation(req, res, next) {
+	async updateAppInfo(req, res, next) {
 		try {
 
 			const { appId } = req.params
 
-			const { isCompleted, message } = await AppService.updateAppInformation(appId, req.body, req.file);
+			const { isCompleted, message } = await AppService.updateAppInfo(appId, req.body, req.file);
 
 			if (!isCompleted) {
 				return next({

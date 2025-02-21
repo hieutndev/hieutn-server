@@ -10,18 +10,7 @@ class AccountController extends BaseController {
 	async signUp(req, res, next) {
 		try {
 
-			const { username } = req.body;
-
-			let signUpMethod;
-
-			if (username) {
-				signUpMethod = AccountService.signUpByUsername;
-			} else {
-				signUpMethod = AccountService.signUpByEmail;
-			}
-
-			const { isCompleted, message } = await signUpMethod(req.body)
-
+			const { isCompleted, message } = await AccountService.signUp(req.body)
 
 			if (!isCompleted) {
 				return super.createResponse(res, 400, message)
@@ -69,10 +58,10 @@ class AccountController extends BaseController {
 		}
 	}
 
-	async getAllUsers(req, res, next) {
+	async getAllAccounts(req, res, next) {
 		try {
 
-			const { isCompleted, message, results } = await AccountService.getListAccounts();
+			const { isCompleted, message, results } = await AccountService.getAllAccounts();
 
 			if (!isCompleted) {
 				return super.createResponse(res, 400, message)
@@ -93,10 +82,10 @@ class AccountController extends BaseController {
 
 			const { action } = req.body
 
-			const { isCompleted, message } = await AccountService.updateAccountStatus(accountId, action)
+			const { isCompleted, message } = await AccountService.updateAccountActiveStatus(accountId, action)
 
 			if (!isCompleted) {
-				return super.createResponse(res, 400, message)
+				return super.createResponse(res, 404, message)
 			}
 
 			return super.createResponse(res, 200, message)

@@ -2,8 +2,8 @@ const BaseService = require('./BaseService');
 const Message = require("../utils/response-message");
 const { accountSQL } = require("../utils/sql-query-string");
 const randomString = require("../utils/generate-unique-string");
-const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
+const { RESPONSE_CODE } = require("../constants/response-code")
 
 
 const REGEX = require("../utils/regex");
@@ -12,107 +12,117 @@ const { generateAccessToken, generateRefreshToken } = require("../utils/jwt-help
 class AccountService extends BaseService {
 	constructor() {
 		super();
-		this.signUpByEmail = this.signUpByEmail.bind(this);
-		this.signUpByUsername = this.signUpByUsername.bind(this);
+	}
+
+	async blockAccount(userId) {
+		const accountInfo = await this.isAccountExist(userId, "id");
+
+		if (!accountInfo) {
+			throw new Error(RESPONSE_CODE.ERROR.USER_ID_NOT_FOUND.CODE);
+		}
+
+		if (accountInfo.is_active === 0) {
+			throw new Error(RESPONSE_CODE.ERROR.ALREADY_BLOCKED.CODE);
+		}
+
+		const blockAccount = await super.query(accountSQL.blockAccount, [userId]);
+
+		if (!blockAccount.isCompleted) {
+			throw new Error(blockAccount.message);
+		}
+
+		return {
+			isCompleted: true,
+			message: RESPONSE_CODE.SUCCESS.SUCCESS_BLOCK.CODE,
+		}
+
+	}
+
+	async unBlockAccount(userId) {
+
+		const accountStatus = await this.isAccountExist(userId, "id");
+
+		if (!accountStatus) {
+			throw new Error(RESPONSE_CODE.ERROR.USER_ID_NOT_FOUND.CODE)
+		}
+
+		if (accountStatus.is_active === 1) {
+			throw new Error(RESPONSE_CODE.ERROR.ACCOUNT_NOT_BLOCKED.CODE)
+		}
+
+		const unblockStatus = await super.query(accountSQL.unBlockAccount, [userId]);
+
+		if (!unblockStatus.isCompleted) {
+			throw new Error(unblockStatus.message)
+		}
+
+		return {
+			isCompleted: true,
+			message: RESPONSE_CODE.SUCCESS.SUCCESS_UNBLOCK.CODE,
+		}
 	}
 
 	async getAccountByEmail(email) {
-		try {
-			const account = await super.query(accountSQL.getAccountByEmail, [email])
+		const queryAccountByEmail = await super.query(accountSQL.getAccountByEmail, [email])
 
-			if (!account.isCompleted) {
-				return {
-					isCompleted: false,
-					message: account.message,
-				}
-			}
-
-			return {
-				isCompleted: true,
-				results: account.results,
-			}
-
-		} catch (error) {
-			throw error
+		if (!queryAccountByEmail.isCompleted) {
+			throw new Error(RESPONSE_CODE.ERROR.EMAIL_NOT_FOUND.CODE)
 		}
+
+		return queryAccountByEmail.results
 	}
 
 	async getAccountByUsername(username) {
-		try {
-			const account = await super.query(accountSQL.getAccountByUsername, [username])
 
-			if (!account.isCompleted) {
-				return {
-					isCompleted: false,
-					message: account.message,
-				}
-			}
+		const queryAccountByUsername = await super.query(accountSQL.getAccountByUsername, [username])
 
-			return {
-				isCompleted: true,
-				results: account.results,
-			}
-
-		} catch (error) {
-			throw error
+		if (!queryAccountByUsername.isCompleted) {
+			throw new Error(RESPONSE_CODE.ERROR.USERNAME_NOT_FOUND.CODE)
 		}
+
+		return queryAccountByUsername.results
+
 	}
 
 	async getAccountByUserId(userId) {
-		try {
-			const account = await super.query(accountSQL.getAccountById, [userId])
 
-			if (!account.isCompleted) {
-				return {
-					isCompleted: false,
-					message: account.message,
-				}
-			}
+		const queryAccountById = await super.query(accountSQL.getAccountById, [userId])
 
-			return {
-				isCompleted: true,
-				results: account.results,
-			}
-
-		} catch (error) {
-			throw error
+		if (!queryAccountById.isCompleted) {
+			throw new Error(RESPONSE_CODE.ERROR.USER_ID_NOT_FOUND.CODE)
 		}
+
+		return queryAccountById.results
+
 	}
 
-	async hasAccount(searchValue, searchBy) {
+	async isAccountExist(searchValue, searchBy) {
 
-		if (!["email", "id"].includes(searchBy)) {
-			throw new Error("searchBy must be either 'email' or 'id'")
+		if (!["email", "id", "username"].includes(searchBy)) {
+			throw new Error("searchBy must be either 'email', 'id' or 'username'");
 		}
 
 		try {
-
-			const account = searchBy === "email" ? await this.getAccountByEmail(searchValue) : await this.getAccountByUserId(searchValue);
-
-			if (!account.isCompleted) {
-				return {
-					isCompleted: false,
-					message: account.message
-				}
+			let queryAccount;
+			if (searchBy === "email") {
+				queryAccount = await this.getAccountByEmail(searchValue)
 			}
 
-			if (account.results.length === 0) {
-				return {
-					isCompleted: false,
-					message: searchBy === "email" ? Message.emailNotFound : Message.userIdNotFound
-				}
+			if (searchBy === "id") {
+				queryAccount = await this.getAccountByUserId(searchValue);
 			}
 
-			return {
-				isCompleted: true,
-				results: account.results[0]
+			if (searchBy === "username") {
+				queryAccount = await this.getAccountByUsername(searchValue);
 			}
 
+			if (queryAccount.length === 0) {
+				return false
+			}
+
+			return queryAccount[0]
 		} catch (error) {
-			return {
-				isCompleted: false,
-				message: error,
-			}
+			throw error
 		}
 
 	}
@@ -122,99 +132,51 @@ class AccountService extends BaseService {
 	}
 
 	async comparePassword(inputPassword, hashedPassword) {
-		return await bcrypt.compare(inputPassword, hashedPassword)
-	}
 
-	async signUpByEmail({ email, password, confirm_password }) {
-		try {
-
-			if (password !== confirm_password) {
-				return {
-					isCompleted: false,
-					message: Message.notMatch("Password", "Confirm password"),
-				}
-			}
-
-			if (!REGEX.PASSWORD.test(password)) {
-				return {
-					isCompleted: false,
-					message: Message.passwordNotStrongEnough,
-				}
-			}
-
-			const accountWithEmail = await this.getAccountByEmail(email)
-
-			if (!accountWithEmail.isCompleted) {
-				return {
-					isCompleted: false,
-					message: accountWithEmail.message,
-				}
-			}
-
-			if (accountWithEmail.results.length > 0) {
-				return {
-					isCompleted: false,
-					message: Message.emailAlreadyExist,
-				}
-			}
-
-			const signUp = await super.query(accountSQL.signUp, [randomString(10), email, await this.hashPassword(password)])
-
-			if (!signUp.isCompleted) {
-				return {
-					isCompleted: false,
-					message: signUp.message,
-				}
-			}
-
-			return {
-				isCompleted: true,
-				message: Message.signUpSuccess,
-			}
-
-
-		} catch (error) {
-			return {
-				isCompleted: false,
-				message: error,
-			}
+		if (await bcrypt.compare(inputPassword, hashedPassword)) {
+			return true;
+		} else {
+			throw new Error(RESPONSE_CODE.ERROR.WRONG_PASSWORD.CODE)
 		}
 	}
 
-	async signUpByUsername({ username, password, confirm_password }) {
+	async signUp({ username, email, password, confirm_password }) {
 		try {
 
 			if (password !== confirm_password) {
 				return {
 					isCompleted: false,
-					message: Message.notMatch("Password", "Confirm password"),
+					message: RESPONSE_CODE.ERROR.PASSWORD_NOT_MATCH.CODE,
 				}
 			}
 
 			if (!REGEX.PASSWORD.test(password)) {
 				return {
 					isCompleted: false,
-					message: Message.passwordNotStrongEnough,
+					message: RESPONSE_CODE.ERROR.PASSWORD_NOT_STRONG_ENOUGH.CODE,
 				}
 			}
 
-			const accountWithUsername = await this.getAccountByUsername(username)
 
-			if (!accountWithUsername.isCompleted) {
-				return {
-					isCompleted: false,
-					message: accountWithUsername.message,
+			if (username) {
+				if (await this.isAccountExist(username, "username")) {
+					return {
+						isCompleted: false,
+						message: RESPONSE_CODE.ERROR.USERNAME_ALREADY_EXIST.CODE,
+					}
 				}
 			}
 
-			if (accountWithUsername.results.length > 0) {
-				return {
-					isCompleted: false,
-					message: Message.usernameAlreadyExist,
+			if (email) {
+				if (await this.isAccountExist(email, "email")) {
+					return {
+						isCompleted: false,
+						message: RESPONSE_CODE.ERROR.EMAIL_ALREADY_EXIST.CODE,
+					}
 				}
 			}
 
-			const signUp = await super.query(accountSQL.signUp, [username, null, await this.hashPassword(password)])
+			const signUp = await super.query(accountSQL.signUp, [username || randomString(10), email || null, await this.hashPassword(password)])
 
 			if (!signUp.isCompleted) {
 				return {
@@ -225,7 +187,7 @@ class AccountService extends BaseService {
 
 			return {
 				isCompleted: true,
-				message: Message.signUpSuccess,
+				message: RESPONSE_CODE.SUCCESS.SIGN_UP_SUCCESS.CODE,
 			}
 
 		} catch (error) {
@@ -238,60 +200,47 @@ class AccountService extends BaseService {
 
 	async signIn({ username, email, password }) {
 		try {
-			let accountDetails;
+			let accountInfo;
+
 			if (username) {
-				accountDetails = await this.getAccountByUsername(username);
+				accountInfo = await this.isAccountExist(username, "username");
 			} else {
-				accountDetails = await this.getAccountByEmail(email);
+				accountInfo = await this.isAccountExist(email, "email");
 			}
 
-			if (!accountDetails.isCompleted) {
+			if (!accountInfo) {
 				return {
 					isCompleted: false,
-					message: accountDetails.message,
+					message: username ? RESPONSE_CODE.ERROR.USERNAME_NOT_FOUND.CODE : RESPONSE_CODE.ERROR.EMAIL_NOT_FOUND.CODE,
 				}
 			}
 
-			if (accountDetails.results.length === 0) {
-				return {
-					isCompleted: false,
-					message: Message.emailNotFound,
+			if (await this.comparePassword(password, accountInfo.password)) {
+				const refreshToken = await generateRefreshToken(accountInfo.user_id);
+				const accessToken = await generateAccessToken({
+					user_id: accountInfo.user_id,
+					role: accountInfo.role
+				})
+
+				const updateRefreshToken = await super.query(accountSQL.updateNewRefreshToken, [refreshToken, accountInfo.user_id]);
+
+				if (!updateRefreshToken.isCompleted) {
+					return {
+						isCompleted: false,
+						message: updateRefreshToken.message,
+					}
 				}
-			}
 
-			const isPasswordMatch = await this.comparePassword(password, accountDetails.results[0].password);
-
-			if (!isPasswordMatch) {
 				return {
-					isCompleted: false,
-					message: Message.passwordNotMatch,
-				}
-			}
-
-			const refreshToken = await generateRefreshToken(accountDetails.results[0].user_id);
-			const accessToken = await generateAccessToken({
-				user_id: accountDetails.results[0].user_id,
-				role: accountDetails.results[0].role
-			})
-
-			const updateRefreshToken = await super.query(accountSQL.updateNewRefreshToken, [refreshToken, accountDetails.results[0].user_id]);
-
-			if (!updateRefreshToken.isCompleted) {
-				return {
-					isCompleted: false,
-					message: updateRefreshToken.message,
-				}
-			}
-
-			return {
-				isCompleted: true,
-				message: Message.signInSuccess,
-				results: {
-					access_token: accessToken,
-					refresh_token: refreshToken,
-					user_id: accountDetails.results[0].user_id,
-					username: accountDetails.results[0].username,
-					role: accountDetails.results[0].role,
+					isCompleted: true,
+					message: RESPONSE_CODE.SUCCESS.SIGN_IN_SUCCESS.CODE,
+					results: {
+						access_token: accessToken,
+						refresh_token: refreshToken,
+						user_id: accountInfo.user_id,
+						username: accountInfo.username,
+						role: accountInfo.role,
+					}
 				}
 			}
 
@@ -306,36 +255,29 @@ class AccountService extends BaseService {
 	async getNewAccessToken(userId, refreshToken) {
 		try {
 
-			const accountDetails = await this.getAccountByUserId(userId);
+			const accountInfo = await this.isAccountExist(userId, "id");
 
-			if (!accountDetails.isCompleted) {
+			if (!accountInfo) {
 				return {
 					isCompleted: false,
-					message: accountDetails.message,
+					message: RESPONSE_CODE.ERROR.USER_ID_NOT_FOUND.CODE,
 				}
 			}
 
-			if (accountDetails.results.length === 0) {
+			if (accountInfo.refresh_token !== refreshToken) {
 				return {
 					isCompleted: false,
-					message: Message.userIdNotFound,
-				}
-			}
-
-			if (accountDetails.results[0].refresh_token !== refreshToken) {
-				return {
-					isCompleted: false,
-					message: Message.wrongRefreshToken,
+					message: RESPONSE_CODE.ERROR.WRONG_REFRESH_TOKEN.CODE,
 				}
 			}
 
 			return {
 				isCompleted: true,
-				message: Message.successGetNewAccessToken,
+				message: RESPONSE_CODE.SUCCESS.SUCCESS_GET_NEW_ACCESS_TOKEN.CODE,
 				results: {
 					access_token: await generateAccessToken({
-						user_id: accountDetails.results[0].user_id,
-						role: accountDetails.results[0].role
+						user_id: accountInfo.user_id,
+						role: accountInfo.role
 					})
 				}
 			}
@@ -348,7 +290,7 @@ class AccountService extends BaseService {
 		}
 	}
 
-	async getListAccounts() {
+	async getAllAccounts() {
 		try {
 
 			const listAccounts = await super.query(accountSQL.getListAccounts);
@@ -373,87 +315,7 @@ class AccountService extends BaseService {
 		}
 	}
 
-	async blockAccount(userId) {
-		try {
-
-			const accountStatus = await this.hasAccount(userId, "id");
-
-			if (!accountStatus.isCompleted) {
-				return {
-					isCompleted: false,
-					message: accountStatus.message,
-				}
-			}
-
-			if (accountStatus.results.is_active === 0) {
-				return {
-					isCompleted: false,
-					message: Message.alreadyBlocked,
-				}
-			}
-
-			const blockAccount = await super.query(accountSQL.blockAccount, [userId]);
-
-			if (!blockAccount.isCompleted) {
-				return {
-					isCompleted: false,
-					message: blockAccount.message,
-				}
-			}
-
-			return {
-				isCompleted: true,
-				message: Message.successBlock
-			}
-		} catch (error) {
-			return {
-				isCompleted: false,
-				message: error,
-			}
-		}
-	}
-
-	async unBlockAccount(userId) {
-		try {
-			const accountStatus = await this.hasAccount(userId, "id");
-
-			if (!accountStatus.isCompleted) {
-				return {
-					isCompleted: false,
-					message: accountStatus.message,
-				}
-			}
-
-			if (accountStatus.results.is_active === 1) {
-				return {
-					isCompleted: false,
-					message: Message.accountNotBlocked,
-				}
-			}
-
-			const unBlockAccount = await super.query(accountSQL.unBlockAccount, [userId]);
-
-			if (!unBlockAccount.isCompleted) {
-				return {
-					isCompleted: false,
-					message: unBlockAccount.message,
-				}
-			}
-
-			return {
-				isCompleted: true,
-				message: Message.successUnblock
-			}
-
-		} catch (error) {
-			return {
-				isCompleted: false,
-				message: error,
-			}
-		}
-	}
-
-	async updateAccountStatus(accountId, action) {
+	async updateAccountActiveStatus(accountId, action) {
 		try {
 
 			if (!["block", "unblock"].includes(action)) {
@@ -479,22 +341,19 @@ class AccountService extends BaseService {
 
 	async checkValidEmail(email) {
 		try {
-			const isHasEmail = await this.hasAccount(email, "email")
+			const emailInfo = await this.isAccountExist(email, "email");
 
-			console.log(isHasEmail.results)
 			return {
 				isCompleted: true,
-				message: isHasEmail.isCompleted ? "" : isHasEmail.message,
+				message: emailInfo ? RESPONSE_CODE.SUCCESS.VALID_EMAIL.CODE : RESPONSE_CODE.ERROR.EMAIL_NOT_FOUND.CODE,
 				results: {
-					isValid: isHasEmail.isCompleted,
-					emailInfo: isHasEmail.isCompleted ? {
+					isValid: emailInfo ? true : false,
+					emailInfo: emailInfo ? {
 						email,
-						username: isHasEmail.results.username
-					} : {}
+						username: emailInfo.username
+					} : null
 				}
-
 			}
-
 		} catch (error) {
 			return {
 				isCompleted: false,

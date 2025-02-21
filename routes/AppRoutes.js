@@ -12,7 +12,7 @@ const upload = multer({ storage: storage })
 router.get("/", AppController.getAllApps);
 router.post("/", accessTokenChecker, requireRole(1), upload.single("app_icon"), AppController.addNewApp);
 router.get("/:appId", AppController.getAppDetails);
-router.patch("/:appId", accessTokenChecker, requireRole(1), upload.single("app_icon"), AppController.updateAppInformation);
+router.patch("/:appId", accessTokenChecker, requireRole(1), upload.single("app_icon"), AppController.updateAppInfo);
 router.patch("/:appId/display-status", accessTokenChecker, requireRole(1), AppController.updateAppDisplayStatus);
 router.delete("/:appId", accessTokenChecker, requireRole(1), AppController.deleteApp);
 

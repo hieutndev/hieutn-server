@@ -30,7 +30,6 @@ class MySQL {
 					message: "Values must be an array",
 					results: []
 				}
-
 			}
 
 			if (sqlString.includes(";") && sqlString.split(";").length >= 2) {
@@ -61,25 +60,23 @@ class MySQL {
 				if (error.code === "ER_DUP_ENTRY") {
 					return {
 						isCompleted: false,
-						message: "Duplicate data",
+						message: error.code,
 						results: [],
 					}
 				}
 
 				return {
 					isCompleted: false,
-					message: error.message,
+					message: error.code,
 					results: [],
 				}
 			}
 
 			return {
 				isCompleted: false,
-				message: error,
+				message: error.code,
 				results: [],
 			}
-
-
 		}
 	}
 

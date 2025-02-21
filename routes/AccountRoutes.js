@@ -10,7 +10,7 @@ router.post("/sign-in", AccountController.signIn);
 router.get("/rftk", refreshTokenChecker, AccountController.getNewAccessToken);
 router.get("/check", AccountController.checkValidEmail)
 
-router.get("/", accessTokenChecker, requireRole(1), AccountController.getAllUsers);
+router.get("/", accessTokenChecker, requireRole(1), AccountController.getAllAccounts);
 router.patch("/:accountId/active", accessTokenChecker, requireRole(1), AccountController.updateAccountActiveStatus);
 
 
