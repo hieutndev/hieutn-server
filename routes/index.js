@@ -14,8 +14,7 @@ const AppRoutes = require('./AppRoutes');
 router.use('/game-card', GameCardRoutes);
 router.use('/badminton', BadmintonRoutes);
 router.use('/football', GameCardRoutes);
-router.use('/users', GameCardRoutes);
-                                                                                                                                                                                                              
+
 router.use('/projects', ProjectRoutes);
 router.use('/education', EducationRoutes);
 router.use('/certification', CertificationRoutes);
