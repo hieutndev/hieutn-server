@@ -23,7 +23,7 @@ class CertificationService extends BaseService {
 
 			return {
 				isCompleted: true,
-				message: RESPONSE_CODE.SUCCESS.SUCCESS_GET_ALL,
+				message: RESPONSE_CODE.SUCCESS.SUCCESS_GET_ALL.CODE,
 				results: getAllStatus.results
 			}
 		} catch (error) {
@@ -73,11 +73,13 @@ class CertificationService extends BaseService {
 
 		const certInfo = await super.query(certificationSQL.getCertificationDetails, [certId]);
 
+
+
 		if (!certInfo.isCompleted) {
 			throw new Error(certInfo.message);
 		}
 
-		if (certId.results.length === 0) {
+		if (certInfo.results.length === 0) {
 			return false;
 		}
 
