@@ -305,9 +305,9 @@ class GameCardService extends BaseService {
 				} else if (_d.rank === 2) {
 					score += roomConfig.second;
 				} else if (_d.rank === 3) {
-					score += roomConfig.third;
+					score += (-roomConfig.third);
 				} else if (_d.rank === 4) {
-					score += roomConfig.fourth;
+					score += (-roomConfig.fourth);
 				}
 
 				if (_d.win_all) {
@@ -315,7 +315,7 @@ class GameCardService extends BaseService {
 				}
 
 				if (_d.burnt_out) {
-					score += -roomConfig.burnt_out - roomConfig.fourth;
+					score += -roomConfig.burnt_out + roomConfig.fourth;
 				}
 
 				if (_d.swept_out) {
@@ -428,12 +428,12 @@ class GameCardService extends BaseService {
 					matrixScore.forEach((playerScore, index) => {
 						if (index === first - 1) {
 							matrixScore[index][fourth - 1] += roomConfig.first;
-							matrixScore[fourth - 1][first - 1] += roomConfig.fourth;
+							matrixScore[fourth - 1][first - 1] -= roomConfig.fourth;
 						}
 
 						if (index === second - 1) {
 							matrixScore[index][third - 1] += roomConfig.second;
-							matrixScore[third - 1][second - 1] += roomConfig.third;
+							matrixScore[third - 1][second - 1] -= roomConfig.third;
 						}
 					})
 				}
