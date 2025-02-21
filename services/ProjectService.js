@@ -386,8 +386,9 @@ class ProjectService extends BaseService {
 
 			const listImageNames = listProjectImages.results.map((image) => image.image_name);
 
-
-			await Promise.all([this.removeImagesOnS3(listImageNames), this.removeImageOnDB(projectId, listImageNames), s3Bucket.deleteObject(projectDetails.results[0].project_thumbnail), super.queryMany(projectSQL.deleteProject, [projectId, projectId])]);
+			await Promise.all([this.removeImagesOnS3(listImageNames), this.removeImageOnDB(projectId, listImageNames)]);
+			
+			await Promise.all([s3Bucket.deleteObject(projectDetails.results[0].project_thumbnail), super.queryMany(projectSQL.deleteProject, [projectId, projectId])])
 
 			return {
 				isCompleted: true,
