@@ -7,10 +7,10 @@ class CertificationController extends BaseController {
 		super();
 	}
 
-	async getAll(req, res, next) {
+	async getAllCerts(req, res, next) {
 		try {
 
-			const { isCompleted, message, results } = await CertificationService.getAll();
+			const { isCompleted, message, results } = await CertificationService.getAllCerts();
 
 			if (!isCompleted) {
 				return super.createResponse(res, 400, message)
@@ -23,11 +23,11 @@ class CertificationController extends BaseController {
 		}
 	}
 
-	async addNewCertification(req, res, next) {
+	async addNewCert(req, res, next) {
 
 		try {
 
-			const { isCompleted, message, results } = await CertificationService.addNewCertification(req.body, req.file)
+			const { isCompleted, message, results } = await CertificationService.addNewCert(req.body, req.file)
 
 			if (!isCompleted) {
 				return super.createResponse(res, 400, message)
@@ -39,11 +39,11 @@ class CertificationController extends BaseController {
 		}
 	}
 
-	async getCertificationDetails(req, res, next) {
+	async getCertInfo(req, res, next) {
 		try {
 			const { certId } = req.params;
 
-			const { isCompleted, message, results } = await CertificationService.getCertificationDetails(certId, true);
+			const { isCompleted, message, results } = await CertificationService.getCertInfo(certId, true);
 
 			if (!isCompleted) {
 				return super.createResponse(res, 400, message)
@@ -56,7 +56,7 @@ class CertificationController extends BaseController {
 		}
 	}
 
-	async updateCertification(req, res, next) {
+	async updateCertInfo(req, res, next) {
 		try {
 
 			const { certId } = req.params;
@@ -64,7 +64,7 @@ class CertificationController extends BaseController {
 			const {
 				isCompleted,
 				message,
-			} = await CertificationService.updateCertification(certId, req.body, req.file)
+			} = await CertificationService.updateCertInfo(certId, req.body, req.file)
 
 			if (!isCompleted) {
 				return super.createResponse(res, 400, message)
@@ -77,12 +77,12 @@ class CertificationController extends BaseController {
 		}
 	}
 
-	async softDeleteCertification(req, res, next) {
+	async softDeleteCert(req, res, next) {
 		try {
 
 			const { certId } = req.params
 
-			const { isCompleted, message } = await CertificationService.softDeleteCertification(certId);
+			const { isCompleted, message } = await CertificationService.softDeleteCert(certId);
 
 			if (!isCompleted) {
 				return super.createResponse(res, 400, message)
@@ -95,12 +95,12 @@ class CertificationController extends BaseController {
 		}
 	}
 
-	async recoverCertification(req, res, next) {
+	async recoverCert(req, res, next) {
 		try {
 
 			const { certId } = req.params
 
-			const { isCompleted, message } = await CertificationService.recoverCertification(certId);
+			const { isCompleted, message } = await CertificationService.recoverCert(certId);
 
 			if (!isCompleted) {
 				return super.createResponse(res, 400, message)
@@ -114,12 +114,12 @@ class CertificationController extends BaseController {
 		}
 	}
 
-	async permanentDeleteCertification(req, res, next) {
+	async permanentDeleteCert(req, res, next) {
 		try {
 
 			const { certId } = req.params;
 
-			const { isCompleted, message } = await CertificationService.permanentDeleteCertification(certId);
+			const { isCompleted, message } = await CertificationService.permanentDeleteCert(certId);
 
 			if (!isCompleted) {
 				return super.createResponse(res, 400, message)

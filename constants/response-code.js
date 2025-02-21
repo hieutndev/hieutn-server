@@ -68,6 +68,10 @@ const RESPONSE_CODE = {
 			CODE: "NOT_MATCH",
 			MESSAGE: (resource1, resource2) => `${resource2} does not match ${resource1}`
 		},
+		NOT_FOUND: {
+			CODE: "NOT FOUND",
+			MESSAGE: (resource) => ``,
+		},
 		PASSWORD_NOT_STRONG_ENOUGH: {
 			CODE: "PASSWORD_NOT_STRONG_ENOUGH",
 			MESSAGE: "Password is not strong enough"
