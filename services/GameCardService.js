@@ -296,6 +296,7 @@ class GameCardService extends BaseService {
 					const numsBurntOut = matchResults.filter((match) => {
 						return match.match_id == _d.match_id && match.burnt_out === 1
 					});
+
 					if (numsBurntOut.length > 0) {
 						const burntOutScore = numsBurntOut.length * roomConfig.burnt_out;
 						score += burntOutScore;
@@ -305,9 +306,9 @@ class GameCardService extends BaseService {
 				} else if (_d.rank === 2) {
 					score += roomConfig.second;
 				} else if (_d.rank === 3) {
-					score += (-roomConfig.third);
+					score -= roomConfig.third;
 				} else if (_d.rank === 4) {
-					score += (-roomConfig.fourth);
+					score -= roomConfig.fourth
 				}
 
 				if (_d.win_all) {
@@ -315,13 +316,12 @@ class GameCardService extends BaseService {
 				}
 
 				if (_d.burnt_out) {
-					score += -roomConfig.burnt_out + roomConfig.fourth;
+					score -= roomConfig.burnt_out - roomConfig.fourth;
 				}
 
 				if (_d.swept_out) {
-					score += -roomConfig.swept_out;
+					score -= roomConfig.swept_out;
 				}
-
 				return score;
 			}, 0);
 
@@ -363,31 +363,38 @@ class GameCardService extends BaseService {
 
 			const getPlayerIndexByRank = (rank, matchResults) => {
 				return matchResults.find((_m) => _m.rank === rank).player_index;
+
 			}
 
-			const isWinAllMatch = (matchResults) => {
+			const isWinAllMatch = (currentMatchResults) => {
 				return {
-					isWinAllMatch: matchResults.filter((_m) => _m.win_all === 1).length > 0,
-					winner: matchResults.find((_m) => _m.win_all === 1)?.player_index ?? null
+					isWinAllMatch: currentMatchResults.filter((_m) => _m.win_all === 1).length > 0,
+					winner: currentMatchResults.find((_m) => _m.win_all === 1)?.player_index ?? null
 				};
 			}
 
-			const isBurntOutMatch = (matchResults) => {
+			const isBurntOutMatch = (currentMatchResults) => {
 				return {
-					isBurntOutMatch: matchResults.filter((_m) => _m.burnt_out === 1).length > 0,
-					winner: matchResults.find((_m) => _m.rank === 1)?.player_index ?? null,
-					loser: matchResults.filter((_m) => _m.burnt_out === 1).map((_) => _.player_index) ?? null
+					isBurntOutMatch: currentMatchResults.filter((_m) => _m.burnt_out === 1).length > 0,
+					winner: currentMatchResults.find((_m) => _m.rank === 1)?.player_index ?? null,
+					loser: currentMatchResults.filter((_m) => _m.burnt_out === 1).map((_) => _.player_index) ?? null
 				};
 			}
 
 			Array.from({ length: (matchResults.length / 4) }).forEach((_, index) => {
-				const matchResult = getResultOfMatch(index + 1);
-				if (isWinAllMatch(matchResult).isWinAllMatch) {
-					const { winner } = isWinAllMatch(matchResults);
+
+
+
+				const currentMatchResults = getResultOfMatch(index + 1);
+
+
+				if (isWinAllMatch(currentMatchResults).isWinAllMatch) {
+
+					const { winner } = isWinAllMatch(currentMatchResults);
+
 					matrixScore.forEach((playerScore, index) => {
 						if (index === winner - 1) {
 							playerScore.forEach((_, index) => {
-
 								if (index !== winner - 1) {
 									playerScore[index] += roomConfig.swept_out;
 								}
@@ -401,8 +408,11 @@ class GameCardService extends BaseService {
 						}
 					})
 
-				} else if (isBurntOutMatch(matchResult).isBurntOutMatch) {
-					const { winner, loser } = isBurntOutMatch(matchResults);
+
+
+
+				} else if (isBurntOutMatch(currentMatchResults).isBurntOutMatch) {
+					const { winner, loser } = isBurntOutMatch(currentMatchResults);
 
 					matrixScore.forEach((playerScore, index) => {
 						if (index === winner - 1) {
@@ -419,13 +429,27 @@ class GameCardService extends BaseService {
 							})
 						}
 					})
-				} else {
-					const first = getPlayerIndexByRank(1, matchResults);
-					const second = getPlayerIndexByRank(2, matchResults);
-					const third = getPlayerIndexByRank(3, matchResults);
-					const fourth = getPlayerIndexByRank(4, matchResults);
 
-					matrixScore.forEach((playerScore, index) => {
+					if (loser.length === 1) {
+						const second = getPlayerIndexByRank(2, currentMatchResults);
+						const third = getPlayerIndexByRank(3, currentMatchResults);
+
+						matrixScore.forEach((_, index) => {
+							if (index === second - 1) {
+								matrixScore[index][third - 1] += roomConfig.second;
+								matrixScore[third - 1][second - 1] -= roomConfig.third;
+							}
+						});
+
+					}
+
+				} else {
+					const first = getPlayerIndexByRank(1, currentMatchResults);
+					const second = getPlayerIndexByRank(2, currentMatchResults);
+					const third = getPlayerIndexByRank(3, currentMatchResults);
+					const fourth = getPlayerIndexByRank(4, currentMatchResults);
+
+					matrixScore.forEach((_, index) => {
 						if (index === first - 1) {
 							matrixScore[index][fourth - 1] += roomConfig.first;
 							matrixScore[fourth - 1][first - 1] -= roomConfig.fourth;
@@ -435,14 +459,20 @@ class GameCardService extends BaseService {
 							matrixScore[index][third - 1] += roomConfig.second;
 							matrixScore[third - 1][second - 1] -= roomConfig.third;
 						}
-					})
+					});
 				}
 			})
 
+
 			if (twoPlayResults.length > 0) {
+
 				twoPlayResults.forEach((twoPlay) => {
+
+
 					matrixScore[twoPlay.taker - 1][twoPlay.burner - 1] += twoPlay.quantity * (twoPlay.two_color === "red" ? roomConfig.red_two : roomConfig.black_two);
 					matrixScore[twoPlay.burner - 1][twoPlay.taker - 1] += -twoPlay.quantity * (twoPlay.two_color === "red" ? roomConfig.red_two : roomConfig.black_two);
+
+
 				})
 			}
 

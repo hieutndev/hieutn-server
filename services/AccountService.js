@@ -187,7 +187,7 @@ class AccountService extends BaseService {
 
 			return {
 				isCompleted: true,
-				message: RESPONSE_CODE.SUCCESS.SIGN_UP_SUCCESS.CODE,
+				message: RESPONSE_CODE.SUCCESS.SUCCESS_SIGN_UP.CODE,
 			}
 
 		} catch (error) {
@@ -233,7 +233,7 @@ class AccountService extends BaseService {
 
 				return {
 					isCompleted: true,
-					message: RESPONSE_CODE.SUCCESS.SIGN_IN_SUCCESS.CODE,
+					message: RESPONSE_CODE.SUCCESS.SUCCESS_SIGN_IN.CODE,
 					results: {
 						access_token: accessToken,
 						refresh_token: refreshToken,
