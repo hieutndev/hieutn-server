@@ -14,7 +14,7 @@ class AppService extends BaseService {
 
 	async getAllApps(filter = "all") {
 
-		const validFilter = ["all", "onlyDisplay", "onlyHide"];
+		const validFilter = ["all", "onlyShow", "onlyHide"];
 
 		if (!validFilter.includes(filter)) {
 			return {
