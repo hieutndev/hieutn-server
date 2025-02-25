@@ -3,18 +3,22 @@ const SOCKET_EVENT_NAMES = {
 		UPDATE_ROOM_CONFIG: {
 			RECEIVE: "updateRoomConfig",
 			SEND: "roomConfigUpdated",
+			ERROR: "errorUpdateRoomConfig",
 		},
 		CLOSE_ROOM: {
 			RECEIVE: "closeRoom",
 			SEND: "roomClosed",
+			ERROR: "errorCloseRoom",
 		},
 		CREATE_RESULT: {
 			RECEIVE: "createNewResult",
 			SEND: "newResultCreated",
+			ERROR: "errorCreateNewResult",
 		},
 		DELETE_MATCH_RESULT: {
-			RECEIVE: "deleteMatchResults",
+			RECEIVE: "deleteMatchResult",
 			SEND: "matchResultsDeleted",
+			ERROR: "errorDeleteMatchResult",
 		},
 		CREATE_NEW_ROOM: {
 			RECEIVE: "createNewRoom",
@@ -23,6 +27,7 @@ const SOCKET_EVENT_NAMES = {
 		JOIN_ROOM: "joinCGRoom",
 		LEAVE_ROOM: "outCGRoom",
 		PLAYER_CHANGE: "playerChange",
+
 	}
 };
 

@@ -20,15 +20,18 @@ class SocketController {
 
 	async gcCreateNewRoom({ created_by, roomConfig }) {
 
-		const createNewRoom = await GameCardService.createNewRoom(created_by, roomConfig);
-		if (createNewRoom.isCompleted) {
-			const getListRooms = await GameCardService.getAllRooms();
-			this.io.emit(SOCKET_EVENT_NAMES.GAME_CARD.CREATE_NEW_ROOM.SEND, {
-				newRoomId: createNewRoom.results.newRoomId,
-				listRooms: getListRooms.results
-			});
+		try {
+			const createNewRoom = await GameCardService.createNewRoom(created_by, roomConfig);
+			if (createNewRoom.isCompleted) {
+				const getListRooms = await GameCardService.getAllRooms();
+				this.io.emit(SOCKET_EVENT_NAMES.GAME_CARD.CREATE_NEW_ROOM.SEND, {
+					newRoomId: createNewRoom.results.newRoomId,
+					listRooms: getListRooms.results
+				});
+			}
+		} catch (error) {
+			console.log(error)
 		}
-
 	}
 
 	gcJoinRoom(socket, { roomId, username }) {
@@ -57,75 +60,67 @@ class SocketController {
 	}
 
 	async gcCreateNewResult({
-								roomId,
-								player1Result,
-								player2Result,
-								player3Result,
-								player4Result,
-								twoPlayResults,
-								createdBy
-							}) {
-		const insertNewResult = await GameCardService.insertNewResult(roomId, player1Result, player2Result, player3Result, player4Result, twoPlayResults);
+		roomId,
+		player1Result,
+		player2Result,
+		player3Result,
+		player4Result,
+		twoPlayResults,
+		createdBy
+	}) {
+		try {
+			await GameCardService.insertNewResult(roomId, player1Result, player2Result, player3Result, player4Result, twoPlayResults);
 
-		if (insertNewResult.isCompleted) {
 			const roomResults = await GameCardService.getRoomResults(roomId);
 
-			if (roomResults.isCompleted) {
-				this.io.to(roomId.toString()).emit(SOCKET_EVENT_NAMES.GAME_CARD.CREATE_RESULT.SEND, {
-					createdBy,
-					roomResults: roomResults.results
-				});
-			} else {
-				this.io.to(roomId.toString()).emit("errorOnCreateNewResult", { error: insertNewResult.message });
-			}
-		} else {
-			this.io.to(roomId.toString()).emit("errorOnCreateNewResult", { error: insertNewResult.message });
+			this.io.to(roomId.toString()).emit(SOCKET_EVENT_NAMES.GAME_CARD.CREATE_RESULT.SEND, {
+				createdBy,
+				roomResults: roomResults.results
+			});
+		} catch (error) {
+			this.io.to(roomId.toString()).emit(SOCKET_EVENT_NAMES.GAME_CARD.CREATE_RESULT.ERROR, { error: error.message || "x" });
 		}
-
 	}
 
 	async gcDeleteMatchResult({ deleteBy, roomId, matchId }) {
-		const deleteMatchResults = await GameCardService.deleteResults(roomId, matchId);
+		try {
+			await GameCardService.deleteResults(roomId, matchId);
 
-		if (deleteMatchResults.isCompleted) {
 			const roomResults = await GameCardService.getRoomResults(roomId);
 
-			if (roomResults.isCompleted) {
-				this.io.to(roomId.toString()).emit(SOCKET_EVENT_NAMES.GAME_CARD.DELETE_MATCH_RESULT.SEND, {
-					deleteBy,
-					roomResults: roomResults.results
-				});
-			} else {
-				this.io.to(roomId.toString()).emit("errorOnDeleteMatchResults", { error: deleteMatchResults.message });
-			}
+			this.io.to(roomId.toString()).emit(SOCKET_EVENT_NAMES.GAME_CARD.DELETE_MATCH_RESULT.SEND, {
+				deleteBy,
+				roomResults: roomResults.results
+			});
+		} catch (error) {
+			this.io.to(roomId.toString()).emit(SOCKET_EVENT_NAMES.GAME_CARD.DELETE_MATCH_RESULT.ERROR, { error: error.message });
 		}
 	}
 
 	async gcUpdateRoomConfig({ roomId, updatedBy, newConfig }) {
-		const updateRoomConfig = await GameCardService.updateRoomConfig(roomId, newConfig);
+		try {
+			const updateRoomConfig = await GameCardService.updateRoomConfig(roomId, newConfig);
 
-		if (updateRoomConfig.isCompleted) {
-			const roomInfo = await GameCardService.getRoomInfo(roomId);
-
-			if (roomInfo.isCompleted) {
-
-				this.io.to(roomId.toString()).emit(SOCKET_EVENT_NAMES.GAME_CARD.UPDATE_ROOM_CONFIG.SEND, {
-					updatedBy,
-					roomDetails: roomInfo.results
-				});
-			} else {
-
-				this.io.to(roomId.toString()).emit("errorOnUpdateRoomConfig", { error: updateRoomConfig.message });
+			if (!updateRoomConfig.isCompleted) {
+				this.io.to(roomId.toString()).emit(SOCKET_EVENT_NAMES.GAME_CARD.UPDATE_ROOM_CONFIG.ERROR, { error: updateRoomConfig.message });
 			}
-		} else {
-			this.io.to(roomId.toString()).emit("errorOnUpdateRoomConfig", { error: updateRoomConfig.message });
+
+			const roomDetails = await GameCardService.getRoomInfoById(roomId);
+
+			this.io.to(roomId.toString()).emit(SOCKET_EVENT_NAMES.GAME_CARD.UPDATE_ROOM_CONFIG.SEND, {
+				updatedBy,
+				roomDetails
+			});
+
+		} catch (error) {
+			this.io.to(roomId.toString()).emit(SOCKET_EVENT_NAMES.GAME_CARD.UPDATE_ROOM_CONFIG.ERROR, { error: error.message });
 		}
+
 	}
 
 	async gcCloseRoom({ roomId, closedBy }) {
-		const closeRoom = await GameCardService.closeRoom(roomId);
-
-		if (closeRoom.isCompleted) {
+		try {
+			await GameCardService.closeRoom(roomId);
 
 			await Promise.all([GameCardService.getRoomInfo(roomId), GameCardService.getAllRooms()])
 				.then(([roomInfo, getListRooms]) => {
@@ -139,8 +134,9 @@ class SocketController {
 						roomDetails: roomInfo.results
 					});
 				})
-		} else {
-			this.io.to(roomId.toString()).emit("errorOnClosedRoom", { error: closeRoom.message });
+
+		} catch (error) {
+			this.io.to(roomId.toString()).emit(SOCKET_EVENT_NAMES.GAME_CARD.CLOSE_ROOM.ERROR, { error: error.message });
 		}
 	}
 
