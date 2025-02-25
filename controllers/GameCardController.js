@@ -12,7 +12,7 @@ class GameCardController extends BaseController {
 		try {
 			const { isCompleted, message, results } = await GameCardService.getAllRooms();
 
-			if (isCompleted === false) {
+			if (!isCompleted) {
 				return super.createResponse(res, 400, message)
 			}
 
@@ -29,7 +29,7 @@ class GameCardController extends BaseController {
 
 			const { isCompleted, message, results } = await GameCardService.getRoomInfo(roomId);
 
-			if (isCompleted === false) {
+			if (!isCompleted) {
 				return super.createResponse(res, 400, message)
 			}
 
@@ -46,29 +46,11 @@ class GameCardController extends BaseController {
 
 			const { isCompleted, message, results } = await GameCardService.createNewRoom(req.user_id, roomConfig);
 
-			if (isCompleted === false) {
+			if (!isCompleted) {
 				return super.createResponse(res, 400, message)
 			}
 
 			return super.createResponse(res, 200, message, results);
-		} catch (error) {
-			return super.createResponse(res, 500, error)
-		}
-	}
-
-	async getRoomMatchResults(req, res, next) {
-		try {
-
-			const { roomId } = req.params;
-
-			const { isCompleted, message, results } = await GameCardService.getListPlayHistory(roomId);
-
-			if (isCompleted === false) {
-				return super.createResponse(res, 400, message);
-			}
-
-			return super.createResponse(res, 200, message, results);
-
 		} catch (error) {
 			return super.createResponse(res, 500, error)
 		}

@@ -8,8 +8,6 @@ const { accessTokenChecker } = require("../middlewares/token-middlewares");
 
 router.get('/', GameCardController.getAllRooms);
 router.post('/', accessTokenChecker, GameCardController.createNewRoom);
-
-router.get("/:roomId/match-results", GameCardController.getRoomMatchResults)
 router.post("/:roomId/match-results", GameCardController.insertNewResults)
 router.get("/:roomId/results", GameCardController.getRoomResults)
 router.get("/:roomId", GameCardController.getRoomDetails)

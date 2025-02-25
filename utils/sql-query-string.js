@@ -38,7 +38,9 @@ const QueryString = {
           and match_id = ?`,
         createNewRoom: `INSERT INTO gcard_rooms (created_by)
                         VALUES (?)`,
-        createNewRoomConfig: `INSERT INTO gcard_room_configs (room_id, first, second, third, fourth, red_two, black_two,
+        deleteRoom: `DELETE FROM gcard_rooms
+                        WHERE room_id = ?`,
+        setNewRoomConfig: `INSERT INTO gcard_room_configs (room_id, first, second, third, fourth, red_two, black_two,
                                                               burnt_out, swept_out, player1_name, player2_name,
                                                               player3_name, player4_name)
                               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
