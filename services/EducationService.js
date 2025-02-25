@@ -2,6 +2,7 @@ const BaseService = require("./BaseService");
 const Message = require("../utils/response-message");
 
 const { educationSQL } = require("../utils/sql-query-string")
+const { RESPONSE_CODE } = require("../constants/response-code");
 
 class EducationService extends BaseService {
 	constructor() {
@@ -36,22 +37,36 @@ class EducationService extends BaseService {
 		}
 	}
 
+	async getEducationById(educationId) {
+		const educationDetails = await super.query(educationSQL.getEducationDetails, [educationId]);
+
+		if (!educationDetails.isCompleted) {
+			throw new Error(educationDetails.message);
+		}
+
+		if (educationDetails.results.length === 0) {
+			return false;
+		}
+
+		return educationDetails.results[0];
+	}
+
 	async getEducationDetails(educationId) {
 		try {
 
-			const getEducationDetails = await super.query(educationSQL.getEducationDetails, [educationId]);
+			const educationInfo = await this.getEducationById(educationId);
 
-			if (!getEducationDetails.isCompleted) {
+			if (!educationInfo) {
 				return {
 					isCompleted: false,
-					message: getEducationDetails.message
+					message: RESPONSE_CODE.ERROR.NOT_FOUND.CODE,
 				}
 			}
 
 			return {
 				isCompleted: true,
-				message: Message.successGetOne("education"),
-				results: getEducationDetails.results[0]
+				message: RESPONSE_CODE.SUCCESS.SUCCESS_GET_ONE.CODE,
+				results: educationInfo
 			}
 
 		} catch (error) {
@@ -75,7 +90,7 @@ class EducationService extends BaseService {
 
 			return {
 				isCompleted: true,
-				message: Message.successCreate("education"),
+				message: RESPONSE_CODE.SUCCESS.SUCCESS_CREATE.CODE,
 				results: {
 					newEducationId: addNewEducationStatus.results.insertId
 				}
@@ -88,10 +103,10 @@ class EducationService extends BaseService {
 		}
 	}
 
-	async updateEducationDetails(educationId, { title, organization, time_start, time_end }) {
+	async updateEducationDetails(edu_id, { title, organization, time_start, time_end }) {
 		try {
 
-			const updateStatus = await super.query(educationSQL.updateEducationDetails, [title, organization, time_start, time_end, educationId]);
+			const updateStatus = await super.query(educationSQL.updateEducationDetails, [title, organization, time_start, time_end, edu_id]);
 
 			if (!updateStatus.isCompleted) {
 				return ({
@@ -102,7 +117,7 @@ class EducationService extends BaseService {
 
 			return ({
 				isCompleted: true,
-				message: Message.successUpdate("education"),
+				message: RESPONSE_CODE.SUCCESS.SUCCESS_UPDATE.CODE,
 			})
 
 
@@ -117,19 +132,19 @@ class EducationService extends BaseService {
 	async softDeleteEducation(educationId) {
 		try {
 
-			const educationDetails = await this.getEducationDetails(educationId);
+			const educationInfo = await this.getEducationById(educationId);
 
-			if (!educationDetails.isCompleted) {
+			if (!educationInfo) {
 				return {
 					isCompleted: false,
-					message: educationDetails.message,
+					message: RESPONSE_CODE.ERROR.NOT_FOUND.CODE,
 				}
 			}
 
-			if (educationDetails.results.is_deleted) {
+			if (educationInfo.is_deleted) {
 				return {
 					isCompleted: false,
-					message: Message.alreadyInSoftDelete("This education information"),
+					message: RESPONSE_CODE.ERROR.ALREADY_IN_SOFT_DELETE.CODE,
 				}
 			}
 
@@ -144,7 +159,7 @@ class EducationService extends BaseService {
 
 			return {
 				isCompleted: true,
-				message: Message.successDelete("Education information"),
+				message: RESPONSE_CODE.SUCCESS.SUCCESS_DELETE.CODE,
 			}
 
 		} catch (error) {
@@ -158,19 +173,19 @@ class EducationService extends BaseService {
 	async permanentDeleteEducation(educationId) {
 		try {
 
-			const educationDetails = await this.getEducationDetails(educationId);
+			const educationDetails = await this.getEducationById(educationId);
 
-			if (!educationDetails.isCompleted) {
+			if (!educationDetails) {
 				return {
 					isCompleted: false,
-					message: educationDetails.message,
+					message: RESPONSE_CODE.ERROR.NOT_FOUND.CODE,
 				}
 			}
 
-			if (!educationDetails.results.is_deleted) {
+			if (!educationDetails.is_deleted) {
 				return {
 					isCompleted: false,
-					message: Message.notInSoftDelete("This education information"),
+					message: RESPONSE_CODE.ERROR.NOT_IN_SOFT_DELETE.CODE,
 				}
 			}
 
@@ -185,7 +200,7 @@ class EducationService extends BaseService {
 
 			return {
 				isCompleted: true,
-				message: Message.successDelete("Education information"),
+				message: RESPONSE_CODE.SUCCESS.SUCCESS_DELETE.CODE,
 			}
 
 		} catch (error) {
@@ -199,19 +214,19 @@ class EducationService extends BaseService {
 	async recoverEducation(educationId) {
 		try {
 
-			const educationDetails = await this.getEducationDetails(educationId);
+			const educationDetails = await this.getEducationById(educationId);
 
-			if (!educationDetails.isCompleted) {
+			if (!educationDetails) {
 				return {
 					isCompleted: false,
-					message: educationDetails.message,
+					message: RESPONSE_CODE.ERROR.NOT_FOUND.CODE,
 				}
 			}
 
-			if (!educationDetails.results.is_deleted) {
+			if (!educationDetails.is_deleted) {
 				return {
 					isCompleted: false,
-					message: Message.notInSoftDelete("This education information"),
+					message: RESPONSE_CODE.ERROR.NOT_IN_SOFT_DELETE.CODE,
 				}
 			}
 
@@ -226,7 +241,7 @@ class EducationService extends BaseService {
 
 			return {
 				isCompleted: true,
-				message: Message.successUpdate("Education information")
+				message: RESPONSE_CODE.SUCCESS.SUCCESS_RECOVER.CODE,
 			}
 
 		} catch (error) {
@@ -236,7 +251,7 @@ class EducationService extends BaseService {
 			}
 		}
 	}
-	
+
 }
 
 module.exports = new EducationService();
