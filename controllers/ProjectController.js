@@ -1,9 +1,5 @@
 const BaseController = require("./BaseController");
 const ProjectService = require("../services/ProjectService");
-const Message = require("../utils/response-message");
-
-const s3Bucket = require("../configs/s3-bucket");
-const generateUniqueString = require("../utils/generate-unique-string");
 
 class ProjectController extends BaseController {
 	constructor() {
