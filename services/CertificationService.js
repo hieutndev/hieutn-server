@@ -95,6 +95,12 @@ class CertificationService extends BaseService {
 
 			const certInfo = await this.getCertInfoById(certId, true);
 
+			if (!certInfo) {
+				return {
+					isCompleted: false,
+					message: RESPONSE_CODE.ERROR.NOT_FOUND.CODE,
+				}
+			}
 
 			return {
 				isCompleted: true,
