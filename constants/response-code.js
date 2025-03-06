@@ -119,6 +119,18 @@ const RESPONSE_CODE = {
 		INVALID_FIELD_VALUE: {
 			CODE: "INVALID_FIELD_VALUE",
 			MESSAGE: (field) => `Invalid value for ${field}`
+		},
+		ALREADY_EXIST: {
+			CODE: "ALREADY_EXIST",
+			MESSAGE: (resource) => `${resource} already exist`
+		},
+		DUPLICATE_VALUE: {
+			CODE: "DUPLICATE_VALUE",
+			MESSAGE: (field) => `Duplicate value for ${field}`
+		},
+		WRONG_EVENT: {
+			CODE: "WRONG_EVENT",
+			MESSAGE: "Wrong event name"
 		}
 	},
 
