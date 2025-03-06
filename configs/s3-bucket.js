@@ -20,15 +20,22 @@ class S3Bucket {
 		})
 	}
 
-	async putObject(objectName, { buffer, mimetype }, isResize = false, fit = "contain") {
+	async putObject(objectName,
+					{ buffer, mimetype },
+					{
+						isResize = false,
+						fit = "contain",
+						width = 1920,
+						height = 1080
+					}) {
 		try {
 			let resizeBuffer;
+
 			if (isResize) {
-				resizeBuffer = await resizeImage(buffer, 1920, 1080, fit);
+				resizeBuffer = await resizeImage(buffer, width, height, fit);
 			}
 
 			const s3Client = this.createBucket();
-
 
 			const params = {
 				Bucket: process.env.BUCKET_NAME,
