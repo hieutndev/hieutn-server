@@ -131,6 +131,10 @@ const RESPONSE_CODE = {
 		WRONG_EVENT: {
 			CODE: "WRONG_EVENT",
 			MESSAGE: "Wrong event name"
+		},
+		MISSING_IMAGE: {
+			CODE: "MISSING_IMAGE",
+			MESSAGE: "No image uploaded"
 		}
 	},
 

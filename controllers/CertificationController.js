@@ -1,6 +1,7 @@
 const BaseController = require("./BaseController")
 const CertificationService = require("../services/CertificationService");
-
+const { RESPONSE_CODE } = require("../constants/response-code");
+const generateUniqueString = require("../utils/generate-unique-string");
 
 class CertificationController extends BaseController {
 	constructor() {
@@ -10,13 +11,9 @@ class CertificationController extends BaseController {
 	async getAllCerts(req, res, next) {
 		try {
 
-			const { isCompleted, message, results } = await CertificationService.getAllCerts();
+			const listCerts = await CertificationService.getAllCerts();
 
-			if (!isCompleted) {
-				return super.createResponse(res, 400, message)
-			}
-
-			return super.createResponse(res, 200, message, results)
+			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS.SUCCESS_GET_ALL.CODE, listCerts);
 
 		} catch (error) {
 			return super.createResponse(res, 500, error)
@@ -27,13 +24,22 @@ class CertificationController extends BaseController {
 
 		try {
 
-			const { isCompleted, message, results } = await CertificationService.addNewCert(req.body, req.file)
+			const { title, issued_by, issued_date } = req.body;
 
-			if (!isCompleted) {
-				return super.createResponse(res, 400, message)
+			if (!req.file) {
+				return super.createResponse(res, 404, RESPONSE_CODE.ERROR.MISSING_IMAGE.CODE)
 			}
 
-			return super.createResponse(res, 200, message, results)
+			const imageName = `cert_${generateUniqueString()}`;
+
+			const [, newCertId] = await Promise.all([
+				CertificationService.uploadCertImage(req.file, imageName),
+				CertificationService.createNewCert(title, issued_by, issued_date, imageName)
+			])
+
+			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS.SUCCESS_CREATE.CODE, {
+				newCertId
+			})
 		} catch (error) {
 			return super.createResponse(res, 500, error)
 		}
@@ -43,13 +49,13 @@ class CertificationController extends BaseController {
 		try {
 			const { certId } = req.params;
 
-			const { isCompleted, message, results } = await CertificationService.getCertInfo(certId, true);
+			const certInfo = await CertificationService.getCertInfoById(certId, true);
 
-			if (!isCompleted) {
-				return super.createResponse(res, 400, message)
+			if (!certInfo) {
+				return super.createResponse(res, 404, RESPONSE_CODE.ERROR.NOT_FOUND.CODE);
 			}
 
-			return super.createResponse(res, 200, message, results)
+			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS.SUCCESS_GET_ONE.CODE, certInfo);
 
 		} catch (error) {
 			return super.createResponse(res, 500, error)
@@ -61,16 +67,20 @@ class CertificationController extends BaseController {
 
 			const { certId } = req.params;
 
-			const {
-				isCompleted,
-				message,
-			} = await CertificationService.updateCertInfo(certId, req.body, req.file)
+			const { title, issued_by, issued_date } = req.body;
 
-			if (!isCompleted) {
-				return super.createResponse(res, 400, message)
+			const certInfo = await CertificationService.getCertInfoById(certId, false);
+
+			if (!certInfo) {
+				return super.createResponse(res, 404, RESPONSE_CODE.ERROR.NOT_FOUND.CODE);
 			}
 
-			return super.createResponse(res, 200, message || "test")
+			await Promise.all([
+				req.file && CertificationService.uploadCertImage(req.file, certInfo.image_name),
+				CertificationService.updateCertInfo(certId, title, issued_by, issued_date)
+			])
+
+			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS.SUCCESS_UPDATE.CODE);
 
 		} catch (error) {
 			return super.createResponse(res, 500, error)
@@ -82,13 +92,20 @@ class CertificationController extends BaseController {
 
 			const { certId } = req.params
 
-			const { isCompleted, message } = await CertificationService.softDeleteCert(certId);
 
-			if (!isCompleted) {
-				return super.createResponse(res, 400, message)
+			const certInfo = await CertificationService.getCertInfoById(certId);
+
+			if (!certInfo) {
+				return super.createResponse(res, 404, RESPONSE_CODE.ERROR.NOT_FOUND.CODE);
 			}
 
-			return super.createResponse(res, 200, message)
+			if (certInfo.is_deleted === 1) {
+				return super.createResponse(res, 404, RESPONSE_CODE.ERROR.ALREADY_IN_SOFT_DELETE.CODE);
+			}
+
+			await CertificationService.softDeleteCert(certId);
+
+			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS.SUCCESS_DELETE.CODE);
 
 		} catch (error) {
 			return super.createResponse(res, 500, error)
@@ -100,13 +117,19 @@ class CertificationController extends BaseController {
 
 			const { certId } = req.params
 
-			const { isCompleted, message } = await CertificationService.recoverCert(certId);
+			const certInfo = await CertificationService.getCertInfoById(certId);
 
-			if (!isCompleted) {
-				return super.createResponse(res, 400, message)
+			if (!certInfo) {
+				return super.createResponse(res, 404, RESPONSE_CODE.ERROR.NOT_FOUND.CODE);
 			}
 
-			return super.createResponse(res, 200, message)
+			if (certInfo.is_deleted === 0) {
+				return super.createResponse(res, 404, RESPONSE_CODE.ERROR.NOT_IN_SOFT_DELETE.CODE);
+			}
+
+			await CertificationService.recoverCert(certId)
+
+			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS.SUCCESS_RECOVER.CODE);
 
 
 		} catch (error) {
@@ -119,13 +142,19 @@ class CertificationController extends BaseController {
 
 			const { certId } = req.params;
 
-			const { isCompleted, message } = await CertificationService.permanentDeleteCert(certId);
+			const certInfo = await CertificationService.getCertInfoById(certId);
 
-			if (!isCompleted) {
-				return super.createResponse(res, 400, message)
+			if (!certInfo) {
+				return super.createResponse(res, 404, RESPONSE_CODE.ERROR.NOT_FOUND.CODE);
 			}
 
-			return super.createResponse(res, 200, message)
+			if (certInfo.is_deleted === 0) {
+				return super.createResponse(res, 404, RESPONSE_CODE.ERROR.ALREADY_IN_SOFT_DELETE.CODE);
+			}
+
+			await CertificationService.permanentDeleteCert(certId);
+
+			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS.SUCCESS_DELETE.CODE)
 
 		} catch (error) {
 			return super.createResponse(res, 500, error)

@@ -10,284 +10,115 @@ class CertificationService extends BaseService {
 		super();
 	}
 
+	async uploadCertImage(imageFile, certImageName) {
+		return super.s3Upload(imageFile, {
+			imageName: certImageName,
+			fit: 'contain',
+			isResize: true,
+			width: 1920,
+			height: 1080,
+		});
+
+	}
+
 	async getAllCerts() {
-		try {
-			const getAllStatus = await super.query(certificationSQL.getAllCertifications);
 
-			if (!getAllStatus.isCompleted) {
-				return {
-					isCompleted: false,
-					message: getAllStatus.message
-				}
-			}
+		const { isCompleted, message, results } = await super.query(certificationSQL.getAllCertifications);
 
-			return {
-				isCompleted: true,
-				message: RESPONSE_CODE.SUCCESS.SUCCESS_GET_ALL.CODE,
-				results: getAllStatus.results
-			}
-		} catch (error) {
-			return {
-				isCompleted: false,
-				message: error,
-			}
+		if (!isCompleted) {
+			throw message;
 		}
+
+		return results
+
 	}
 
-	async addNewCert({ title, issued_by, issued_date }, cert_image_file) {
-		try {
+	async createNewCert(title, issuedBy, issuedDate, imageName) {
 
-			const imageName = randomUniqueString();
+		const {
+			isCompleted,
+			message,
+			results
+		} = await super.query(certificationSQL.addNewCertification, [title, issuedBy, issuedDate, imageName])
 
-			const [insertStatus] = await Promise.all([super.query(certificationSQL.addNewCertification, [title, issued_by, issued_date, imageName]), s3Bucket.putObject(imageName, cert_image_file, true)])
-
-			if (!insertStatus.isCompleted) {
-				await s3Bucket.deleteObject(imageName);
-
-				return {
-					isCompleted: false,
-					message: insertStatus.message,
-				}
-
-			}
-
-
-
-			return {
-				isCompleted: true,
-				message: RESPONSE_CODE.SUCCESS.SUCCESS_CREATE.CODE,
-				results: {
-					newCertId: insertStatus.results.insertId
-				}
-			}
-
-		} catch (error) {
-			return {
-				isCompleted: false,
-				message: error,
-			}
+		if (!isCompleted) {
+			await s3Bucket.deleteObject(imageName);
+			throw message;
 		}
+
+		return results.insertId
+
 	}
 
-	async getCertInfoById(certId, getCertImage = false) {
+	async getCertInfoById(certId, isParseImageUrl = false) {
 
-		const certInfo = await super.query(certificationSQL.getCertificationDetails, [certId]);
+		const { isCompleted, message, results } = await super.query(certificationSQL.getCertificationDetails, [certId]);
 
 
-
-		if (!certInfo.isCompleted) {
-			throw new Error(certInfo.message);
+		if (!isCompleted) {
+			throw message;
 		}
 
-		if (certInfo.results.length === 0) {
+		if (results.length === 0) {
 			return false;
 		}
 
 		return {
-			...certInfo.results[0],
-			image_url: getCertImage ? await s3Bucket.getObject(certInfo.results[0].img_name) : certInfo.results[0].img_name
+			...results[0],
+			image_url: isParseImageUrl ? await s3Bucket.getObject(results[0].img_name) : results[0].img_name
 		}
 
 	}
 
-	async getCertInfo(certId) {
-		try {
+	async updateCertInfo(certId, title, issuedBy, issuedDate) {
 
-			const certInfo = await this.getCertInfoById(certId, true);
+		const {
+			isCompleted,
+			message
+		} = await super.query(certificationSQL.updateCertification, [title, issuedBy, issuedDate, certId]);
 
-			if (!certInfo) {
-				return {
-					isCompleted: false,
-					message: RESPONSE_CODE.ERROR.NOT_FOUND.CODE,
-				}
-			}
-
-			return {
-				isCompleted: true,
-				message: RESPONSE_CODE.SUCCESS.SUCCESS_GET_ONE.CODE,
-				results: certInfo
-			}
-
-		} catch (error) {
-			return {
-				isCompleted: false,
-				message: error,
-			}
-		}
-	}
-
-
-	async updateCertImage(certId, newImage) {
-
-		try {
-
-			const certInfo = await this.getCertInfoById(certId);
-
-			if (!certInfo) {
-				throw new Error(RESPONSE_CODE.ERROR.NOT_FOUND.CODE);
-			}
-
-			await s3Bucket.putObject(certInfo.img_name, newImage, true);
-
-			return true
-
-		} catch (error) {
-			throw error
+		if (!isCompleted) {
+			throw message
 		}
 
-	}
-
-	async updateCertInfo(cert_id, { title, issued_by, issued_date, is_change_image }, cert_image) {
-		try {
-
-			if (is_change_image === "true") {
-				await this.updateCertImage(cert_id, cert_image);
-			}
-
-			const updateCertDetails = await super.query(certificationSQL.updateCertification, [title, issued_by, issued_date, cert_id]);
-
-			if (!updateCertDetails.isCompleted) {
-				return {
-					isCompleted: false,
-					message: updateCertDetails.message
-				}
-			}
-
-			return {
-				isCompleted: true,
-				message: RESPONSE_CODE.SUCCESS.SUCCESS_UPDATE.CODE
-			}
-
-
-		} catch (error) {
-			return {
-				isCompleted: false,
-				message: error,
-			}
-		}
+		return true
 	}
 
 	async softDeleteCert(certId) {
-		try {
 
-			const certStatus = await this.getCertInfoById(certId);
+		const { isCompleted, message, results } = await super.query(certificationSQL.softDeleteCertification, [certId]);
 
-			if (!certStatus) {
-				return {
-					isCompleted: false,
-					message: RESPONSE_CODE.ERROR.NOT_FOUND.CODE,
-				}
-			}
-
-			if (certStatus.is_deleted) {
-				return {
-					isCompleted: false,
-					message: RESPONSE_CODE.ERROR.ALREADY_IN_SOFT_DELETE.CODE,
-				}
-			}
-
-			const softDeleteStatus = await super.query(certificationSQL.softDeleteCertification, [certId]);
-
-			if (!softDeleteStatus.isCompleted) {
-				return {
-					isCompleted: false,
-					message: softDeleteStatus.message
-				}
-			}
-
-			return {
-				isCompleted: true,
-				message: RESPONSE_CODE.SUCCESS.SUCCESS_DELETE.CODE
-			}
-
-		} catch (error) {
-			return {
-				isCompleted: false,
-				message: error,
-			}
+		if (!isCompleted) {
+			throw message
 		}
+
+		return true
 	}
 
 	async recoverCert(certId) {
-		try {
 
-			const certStatus = await this.getCertInfoById(certId);
+		const { isCompleted, message } = await super.query(certificationSQL.recoverCertification, [certId]);
 
-			if (!certStatus) {
-				return {
-					isCompleted: false,
-					message: RESPONSE_CODE.ERROR.NOT_FOUND.CODE
-				}
-			}
-
-			if (!certStatus.is_deleted) {
-				return {
-					isCompleted: false,
-					message: RESPONSE_CODE.ERROR.NOT_IN_SOFT_DELETE.CODE
-				}
-			}
-
-			const recoverStatus = await super.query(certificationSQL.recoverCertification, [certId]);
-
-			if (!recoverStatus.isCompleted) {
-				return {
-					isCompleted: false,
-					message: recoverStatus.message
-				}
-			}
-
-			return {
-				isCompleted: true,
-				message: RESPONSE_CODE.SUCCESS.SUCCESS_RECOVER.CODE
-			}
-
-		} catch (error) {
-			return {
-				isCompleted: false,
-				message: error,
-			}
+		if (!isCompleted) {
+			throw message;
 		}
+
+		return true
+
+
 	}
 
 	async permanentDeleteCert(certId) {
-		try {
 
-			const certStatus = await this.getCertInfoById(certId);
+		const { isCompleted, message } = await super.query(certificationSQL.permanentDeleteCertification, [certId]);
 
-			if (!certStatus) {
-				return {
-					isCompleted: false,
-					message: RESPONSE_CODE.ERROR.NOT_FOUND.CODE
-				}
-			}
-
-			if (!certStatus.is_deleted) {
-				return {
-					isCompleted: false,
-					message: RESPONSE_CODE.ERROR.NOT_IN_SOFT_DELETE.CODE
-				}
-			}
-
-			const deleteStatus = await super.query(certificationSQL.permanentDeleteCertification, [certId]);
-
-			if (!deleteStatus.isCompleted) {
-				return {
-					isCompleted: false,
-					message: deleteStatus.message
-				}
-			}
-
-			return {
-				isCompleted: true,
-				message: RESPONSE_CODE.SUCCESS.SUCCESS_DELETE.CODE
-			}
-
-		} catch (error) {
-			return {
-				isCompleted: false,
-				message: error,
-			}
+		if (!isCompleted) {
+			throw message
 		}
+
+		return true
+
+
 	}
 
 }
