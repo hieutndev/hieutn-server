@@ -1,6 +1,6 @@
 const BaseController = require("./BaseController")
-
 const EmploymentService = require("../services/EmploymentService");
+const { RESPONSE_CODE } = require("../constants/response-code");
 
 class EmploymentController extends BaseController {
 	constructor() {
@@ -10,13 +10,10 @@ class EmploymentController extends BaseController {
 	async getListEmployment(req, res, next) {
 		try {
 
-			const { isCompleted, message, results } = await EmploymentService.getListEmployment();
+			const listEmployment = await EmploymentService.getListEmployment();
 
-			if (!isCompleted) {
-				return super.createResponse(res, 400, message)
-			}
 
-			return super.createResponse(res, 200, message, results)
+			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS.SUCCESS_GET_ALL.CODE, listEmployment)
 
 		} catch (error) {
 			return super.createResponse(res, 500, error)
@@ -26,14 +23,11 @@ class EmploymentController extends BaseController {
 	async addNewEmployment(req, res, next) {
 		try {
 
-			const { isCompleted, message, results } = await EmploymentService.addNewEmployment(req.body);
+			const { title, organization, time_start, time_end } = req.body;
 
-			if (!isCompleted) {
-				return super.createResponse(res, 400, message)
-			}
+			const newEmploymentId = await EmploymentService.addNewEmployment(title, organization, time_start, time_end);
 
-			return super.createResponse(res, 200, message, results)
-
+			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS.SUCCESS_CREATE.CODE, { newEmploymentId })
 
 		} catch (error) {
 			return super.createResponse(res, 500, error)
@@ -43,18 +37,15 @@ class EmploymentController extends BaseController {
 	async getEmploymentDetails(req, res, next) {
 		try {
 
-			const {
-				isCompleted,
-				message,
-				results
-			} = await EmploymentService.getEmploymentDetails(req.params.employmentId);
+			const { employmentId } = req.params;
 
-			if (!isCompleted) {
-				return super.createResponse(res, 400, message)
+			const employmentInfo = await EmploymentService.getEmploymentInfoById(employmentId);
+
+			if (!employmentInfo) {
+				return super.createResponse(res, 404, RESPONSE_CODE.ERROR.NOT_FOUND.CODE)
 			}
 
-			return super.createResponse(res, 200, message, results)
-
+			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS.SUCCESS_GET_ONE.CODE, employmentInfo);
 
 		} catch (error) {
 			return super.createResponse(res, 500, error)
@@ -66,17 +57,17 @@ class EmploymentController extends BaseController {
 
 			const { employmentId } = req.params;
 
-			const {
-				isCompleted,
-				message,
-				results
-			} = await EmploymentService.updateEmploymentDetails(employmentId, req.body);
+			const { title, organization, time_start, time_end } = req.body;
 
-			if (!isCompleted) {
-				return super.createResponse(res, 400, message)
+			const employmentInfo = await EmploymentService.getEmploymentInfoById(employmentId);
+
+			if (!employmentInfo) {
+				return super.createResponse(res, 404, RESPONSE_CODE.ERROR.NOT_FOUND.CODE)
 			}
 
-			return super.createResponse(res, 200, message, results)
+			await EmploymentService.updateEmploymentDetails(employmentId, title, organization, time_start, time_end);
+
+			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS.SUCCESS_UPDATE.CODE)
 
 		} catch (error) {
 			return super.createResponse(res, 500, error)
@@ -88,13 +79,19 @@ class EmploymentController extends BaseController {
 
 			const { employmentId } = req.params;
 
-			const { isCompleted, message } = await EmploymentService.permanentDeleteEmployment(employmentId)
+			const employmentInfo = await EmploymentService.getEmploymentInfoById(employmentId);
 
-			if (!isCompleted) {
-				return super.createResponse(res, 400, message)
+			if (!employmentInfo) {
+				return super.createResponse(res, 404, RESPONSE_CODE.ERROR.NOT_FOUND.CODE)
 			}
 
-			return super.createResponse(res, 200, message)
+			if (employmentInfo.is_deleted === 0) {
+				return super.createResponse(res, 404, RESPONSE_CODE.ERROR.NOT_IN_SOFT_DELETE.CODE);
+			}
+
+			await EmploymentService.permanentDeleteEmployment(employmentId)
+
+			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS.SUCCESS_DELETE.CODE)
 
 		} catch (error) {
 			return super.createResponse(res, 500, error)
@@ -105,13 +102,19 @@ class EmploymentController extends BaseController {
 		try {
 			const { employmentId } = req.params;
 
-			const { isCompleted, message } = await EmploymentService.softDeleteEmployment(employmentId)
+			const employmentInfo = await EmploymentService.getEmploymentInfoById(employmentId);
 
-			if (!isCompleted) {
-				return super.createResponse(res, 400, message)
+			if (!employmentInfo) {
+				return super.createResponse(res, 404, RESPONSE_CODE.ERROR.NOT_FOUND.CODE)
 			}
 
-			return super.createResponse(res, 200, message)
+			if (employmentInfo.is_deleted === 1) {
+				return super.createResponse(res, 404, RESPONSE_CODE.ERROR.ALREADY_IN_SOFT_DELETE.CODE);
+			}
+
+			await EmploymentService.softDeleteEmployment(employmentId)
+
+			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS.SUCCESS_DELETE.CODE)
 
 		} catch (error) {
 			return super.createResponse(res, 500, error)
@@ -122,13 +125,19 @@ class EmploymentController extends BaseController {
 		try {
 			const { employmentId } = req.params;
 
-			const { isCompleted, message } = await EmploymentService.recoverEmployment(employmentId)
+			const employmentInfo = await EmploymentService.getEmploymentInfoById(employmentId);
 
-			if (!isCompleted) {
-				return super.createResponse(res, 400, message)
+			if (!employmentInfo) {
+				return super.createResponse(res, 404, RESPONSE_CODE.ERROR.NOT_FOUND.CODE)
 			}
 
-			return super.createResponse(res, 200, message)
+			if (employmentInfo.is_deleted === 0) {
+				return super.createResponse(res, 404, RESPONSE_CODE.ERROR.NOT_IN_SOFT_DELETE.CODE);
+			}
+
+			await EmploymentService.recoverEmployment(employmentId)
+
+			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS.SUCCESS_RECOVER.CODE)
 
 		} catch (error) {
 			return super.createResponse(res, 500, error)
