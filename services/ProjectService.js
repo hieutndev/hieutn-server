@@ -1,25 +1,47 @@
 const BaseService = require("./BaseService");
 const { projectSQL } = require("../utils/sql-query-string")
 const s3Bucket = require("../configs/s3-bucket");
-const Message = require("../utils/response-message");
 const generateUniqueString = require("../utils/generate-unique-string");
 const { compressText, decompressText } = require("../utils/zlib");
 const { RESPONSE_CODE } = require("../constants/response-code")
+
 class ProjectService extends BaseService {
 
 	constructor() {
 		super();
 	}
 
-	async insertProject(project_fullname, project_shortname, start_date, end_date, short_description, project_thumbnail, group_id, github_link, demo_link) {
+	async uploadProjectThumbnail(imageFile, projectThumbnailName) {
+		return super.s3Upload(imageFile, {
+			imageName: projectThumbnailName,
+			fit: 'contain',
+			isResize: true,
+			width: 1920,
+			height: 1080,
+		});
+	}
 
-		const insertStatus = await super.query(projectSQL.createNewProject, [project_fullname, project_shortname, start_date, end_date, short_description, project_thumbnail, group_id, github_link, demo_link]);
+	async uploadProjectImage(imageFile, projectImageName) {
+		return super.s3Upload(imageFile, {
+			imageName: projectImageName,
+			isResize: false
+		});
+	}
 
-		if (!insertStatus.isCompleted) {
-			throw new Error(insertStatus.message);
+
+	async insertProject(projectFullName, projectShortName, startDate, endDate, shortDescription, projectThumbnail, groupId, githubLink, demoLink) {
+
+		const {
+			isCompleted,
+			message,
+			results
+		} = await super.query(projectSQL.createNewProject, [projectFullName, projectShortName, startDate, endDate, shortDescription, projectThumbnail, groupId, githubLink, demoLink]);
+
+		if (!isCompleted) {
+			throw message
 		}
 
-		return insertStatus.results.insertId
+		return results.insertId
 
 	}
 
@@ -36,35 +58,8 @@ class ProjectService extends BaseService {
 		return insertStatus.results.insertId;
 	}
 
-	async uploadProjectImageToS3(imageData, isResize = true, fit = "cover") {
-		try {
-			const imageName = generateUniqueString();
-			await s3Bucket.putObject(imageName, imageData, isResize, fit)
-
-			return {
-				imageName,
-			}
-		} catch (error) {
-			throw new Error(error)
-		}
-	}
-
-	async removeImagesOnS3(listImageNames) {
-
-		if (listImageNames.length === 0) {
-			return true;
-		}
-
-		await Promise.all(listImageNames.map(async (imageName) => {
-			await s3Bucket.deleteObject(imageName);
-		}))
-
-		return true;
-	}
-
-	async removeImageOnDB(projectId, listImageNames) {
-
-		if (listImageNames.length === 0) {
+	async removeListProjectImageNames(projectId, listImageNames) {
+		if (listImageNames.length < 1) {
 			return true;
 		}
 
@@ -77,17 +72,22 @@ class ProjectService extends BaseService {
 
 	}
 
-	async insertListImageNamesToDB(projectId, listImageName) {
+	async insertListProjectImageNames(projectId, listProjectImageNames) {
 
-
-		const mapListImage = listImageName.map(() => projectSQL.insertProjectImages).join(";");
-		const mapListValue = listImageName.map((image) => [projectId, image.imageName]).flat();
-
-		const insertStatus = await super.queryMany(mapListImage, mapListValue);
-
-		if (!insertStatus.isCompleted) {
-			throw new Error(insertStatus.message);
+		if (listProjectImageNames.length < 1) {
+			return true;
 		}
+
+		const mapListImage = listProjectImageNames.map(() => projectSQL.insertProjectImages).join(";");
+		const mapListValue = listProjectImageNames.map((image) => [projectId, image]).flat();
+
+		const { isCompleted, message } = await super.queryMany(mapListImage, mapListValue);
+
+		if (!isCompleted) {
+			throw message;
+		}
+
+		return true;
 
 	}
 
@@ -132,385 +132,152 @@ class ProjectService extends BaseService {
 
 	}
 
-	async createNewProject({
-		project_fullname,
-		project_shortname,
-		start_date,
-		end_date,
-		short_description,
-		article_body,
-		group_id,
-		github_link,
-		demo_link
-	}, thumbnail_file, project_images) {
-		try {
-			const { imageName } = await this.uploadProjectImageToS3(thumbnail_file);
-
-			const listImageName = project_images ? await Promise.all(project_images.map(async (image) => {
-				return this.uploadProjectImageToS3(image);
-			})) : null;
-
-
-			const newProjectId = await this.insertProject(project_fullname, project_shortname, start_date, end_date, short_description, imageName, group_id, github_link, demo_link);
-
-			await Promise.all([this.insertArticle(newProjectId, article_body), project_images && this.insertListImageNamesToDB(newProjectId, listImageName)])
-
-			return {
-				isCompleted: true,
-				message: RESPONSE_CODE.SUCCESS.SUCCESS_CREATE.CODE,
-				results: {
-					newProjectId
-				}
-			}
-
-		} catch (error) {
-			return {
-				isCompleted: false,
-				message: error,
-			}
-		}
-	}
-
 	async getAllProjects() {
-		try {
-			const listProjects = await super.query(projectSQL.getAllProjects);
 
-			if (!listProjects.isCompleted) {
-				return {
-					isCompleted: false,
-					message: listProjects.message,
-				}
-			}
+		const { isCompleted, message, results } = await super.query(projectSQL.getAllProjects);
 
-			return {
-				isCompleted: true,
-				message: RESPONSE_CODE.SUCCESS.SUCCESS_GET_ALL.CODE,
-				results: listProjects.results
-			}
-		} catch (error) {
-			return {
-				isCompleted: false,
-				message: error,
-			}
+		if (!isCompleted) {
+			throw message;
 		}
+
+		return results
+
 	}
 
-	async getProjectDetails(projectId) {
-		try {
+	async updateProjectArticle(projectId, articleBody) {
+		const compress = compressText(articleBody);
 
-			const projectDetails = await this.getProjectInfoById(projectId, true, true);
+		const { isCompleted, message } = await super.query(projectSQL.updateArticle, [compress, projectId]);
 
-			if (!projectDetails) {
-				return {
-					isCompleted: false,
-					message: RESPONSE_CODE.ERROR.NOT_FOUND.CODE,
-				}
-			}
-
-			return {
-				isCompleted: true,
-				message: RESPONSE_CODE.SUCCESS.SUCCESS_GET_ONE.CODE,
-				results: projectDetails
-			}
-		} catch (error) {
-			return {
-				isCompleted: false,
-				message: error,
-			}
-		}
-	}
-
-	async updateProjectThumbnail(is_change_thumbnail, project_thumbnail_name, thumbnail_file) {
-		if (is_change_thumbnail === "true") {
-			await s3Bucket.putObject(project_thumbnail_name, thumbnail_file, true, "cover");
-		}
-		return true
-	}
-
-	async updateProjectArticle(is_change_article, project_id, article_body) {
-
-		if (is_change_article === "true") {
-
-			const compress = compressText(article_body);
-
-			const updateArticle = await super.query(projectSQL.updateArticle, [compress, project_id]);
-
-			if (!updateArticle.isCompleted) {
-				throw new Error(updateArticle.message);
-			}
+		if (!isCompleted) {
+			throw message;
 		}
 
 		return true
 
 	}
 
-	async updateProjectDetails(project_id, {
-		project_fullname,
-		project_shortname,
-		start_date,
-		end_date,
-		short_description,
-		article_body,
-		group_id,
-		github_link,
-		demo_link,
-		is_change_thumbnail,
-		is_change_article,
-		remove_images,
-	}, thumbnail_file, project_images) {
-		try {
+	async updateProjectDetails(projectId,
+							   projectFullName,
+							   projectShortName,
+							   startDate,
+							   endDate,
+							   shortDescription,
+							   groupId,
+							   githubLink,
+							   demoLink
+	) {
 
-			const projectDetails = await this.getProjectInfoById(project_id);
+		const {
+			isCompleted,
+			message,
+			results
+		} = await super.query(projectSQL.updateProjectDetails, [projectFullName, projectShortName, startDate, endDate, shortDescription, groupId !== 'null' ? groupId : null, githubLink, demoLink, projectId]);
 
-			if (!projectDetails) {
-				return {
-					isCompleted: false,
-					message: RESPONSE_CODE.ERROR.NOT_FOUND.CODE,
-				}
-			}
-
-			const updateProjectDetails = super.query(projectSQL.updateProjectDetails, [project_fullname, project_shortname, start_date, end_date, short_description, group_id !== 'null' ? group_id : null, github_link, demo_link, project_id]);
-			const updateProjectThumbnail = this.updateProjectThumbnail(is_change_thumbnail, projectDetails.project_thumbnail_name, thumbnail_file)
-			const updateProjectArticle = this.updateProjectArticle(is_change_article, project_id, article_body)
-
-
-			const removeImages = JSON.parse(remove_images);
-
-			const [updateProjectDetailsStatus, ,] = await Promise.all([updateProjectDetails,
-				updateProjectThumbnail,
-				updateProjectArticle,
-				this.removeImagesOnS3(removeImages),
-				this.removeImageOnDB(project_id, removeImages)]);
-
-			if (!updateProjectDetailsStatus.isCompleted) {
-				return {
-					isCompleted: false,
-					message: updateProjectDetailsStatus.message,
-				}
-			}
-
-			if (project_images && project_images.length > 0) {
-				const listImageName = await Promise.all(project_images.map(async (image) => {
-					return this.uploadProjectImageToS3(image, false);
-				}));
-
-				await this.insertListImageNamesToDB(project_id, listImageName);
-			}
-
-			return {
-				isCompleted: true,
-				message: RESPONSE_CODE.SUCCESS.SUCCESS_UPDATE.CODE,
-			}
-
-		} catch (error) {
-			return {
-				isCompleted: false,
-				message: error,
-			}
+		if (!isCompleted) {
+			throw message;
 		}
+
+		return true
+
+
 	}
 
 	async deleteProject(projectId) {
-		try {
 
-			const [projectDetails, listProjectImages] = await Promise.all([this.getProjectInfoById(projectId), this.getListProjectImages(projectId)]);
+		const { isCompleted, message } = await super.queryMany(projectSQL.deleteProject, [projectId, projectId]);
 
-
-			if (!projectDetails) {
-				return {
-					isCompleted: false,
-					message: RESPONSE_CODE.ERROR.NOT_FOUND.CODE,
-				}
-			}
-
-
-			const listImageNames = listProjectImages ? listProjectImages.results.map((image) => image.image_name) : [];
-
-			await Promise.all([
-				s3Bucket.deleteObject(projectDetails.project_thumbnail_name),
-				super.queryMany(projectSQL.deleteProject, [projectId, projectId]),
-				listProjectImages && this.removeImagesOnS3(listImageNames),
-				listProjectImages && this.removeImageOnDB(projectId, listImageNames)
-			])
-
-			return {
-				isCompleted: true,
-				message: RESPONSE_CODE.SUCCESS.SUCCESS_DELETE.CODE,
-			}
-
-
-		} catch (error) {
-			return {
-				isCompleted: false,
-				message: error,
-			}
+		if (!isCompleted) {
+			throw message;
 		}
+
+		return true
+
 	}
 
 	async getAllProjectGroups() {
 
-		const listProjectGroups = await super.query(projectSQL.getListProjectGroups);
+		const { isCompleted, message, results } = await super.query(projectSQL.getListProjectGroups);
 
-		if (!listProjectGroups.isCompleted) {
-			throw new Error(listProjectGroups.message);
+		if (!isCompleted) {
+			throw message;
 		}
 
-		return {
-			isCompleted: true,
-			message: RESPONSE_CODE.SUCCESS.SUCCESS_GET_ALL.CODE,
-			results: listProjectGroups.results
-		}
+		return results;
 	}
 
-	async getProjectGroupById(groupId) {
-		const groupInfo = await super.query(projectSQL.getProjectGroupInfo, [groupId]);
+	async getGroupById(groupId) {
+		const { isCompleted, message, results } = await super.query(projectSQL.getProjectGroupInfo, [groupId]);
 
-		if (!groupInfo.isCompleted) {
-			throw new Error(groupInfo.message);
+		if (!isCompleted) {
+			throw message;
 		}
 
-		if (groupInfo.results.length === 0) {
+		if (results.length === 0) {
 			return false;
 		}
 
-		return groupInfo.results[0];
+		return results[0];
 	}
 
-	async getProjectGroupInfo(groupId) {
-		try {
-			const groupInfo = await this.getProjectGroupById(groupId);
+	async createNewProjectGroup(newGroupTitle) {
+		const { isCompleted, message, results } = await super.query(projectSQL.createNewProjectGroup, [newGroupTitle]);
 
-			if (!groupInfo) {
-				return {
-					isCompleted: false,
-					message: RESPONSE_CODE.ERROR.NOT_FOUND.CODE
-				}
-			}
-
-			return {
-				isCompleted: true,
-				message: RESPONSE_CODE.SUCCESS.SUCCESS_GET_ONE.CODE,
-				results: groupInfo,
-			}
-
-		} catch (error) {
-			throw error
-		}
-	}
-
-	async createNewProjectGroup({ newGroupTitle }) {
-		const createNewGroup = await super.query(projectSQL.createNewProjectGroup, [newGroupTitle]);
-
-		if (!createNewGroup.isCompleted) {
-			throw new Error(createNewGroup.message);
+		if (!isCompleted) {
+			throw message;
 		}
 
-		return {
-			isCompleted: true,
-			message: RESPONSE_CODE.SUCCESS.SUCCESS_CREATE.CODE
-		}
+		return results.insertId;
 	}
 
 	async updateProjectGroupInfo(groupId, newGroupTitle) {
-		const updateGroup = await super.query(projectSQL.updateProjectGroup, [newGroupTitle, groupId]);
+		const {
+			isCompleted,
+			message,
+			results
+		} = await super.query(projectSQL.updateProjectGroup, [newGroupTitle, groupId]);
 
-		if (!updateGroup.isCompleted) {
-			throw new Error(updateGroup.message);
+		if (!isCompleted) {
+			throw message;
 		}
 
-		return {
-			isCompleted: true,
-			message: RESPONSE_CODE.SUCCESS.SUCCESS_UPDATE.CODE,
-		}
+		return true;
 	}
 
 	async softDeleteProjectGroup(groupId) {
-		const groupInfo = await this.getProjectGroupById(groupId);
 
-		if (!groupInfo) {
-			return {
-				isCompleted: false,
-				message: RESPONSE_CODE.ERROR.NOT_FOUND.CODE
-			}
+		const { isCompleted, message, results } = await super.query(projectSQL.softDeleteGroup, [groupId]);
+
+		if (!isCompleted) {
+			throw message;
 		}
 
-		if (groupInfo.is_deleted) {
-			return {
-				isCompleted: false,
-				message: RESPONSE_CODE.ERROR.ALREADY_IN_SOFT_DELETE.CODE
-			}
-		}
-
-		const softDeleteGroup = await super.query(projectSQL.softDeleteGroup, [groupId]);
-
-		if (!softDeleteGroup.isCompleted) {
-			throw new Error(softDeleteGroup.message);
-		}
-
-		return {
-			isCompleted: true,
-			message: RESPONSE_CODE.SUCCESS.SUCCESS_DELETE.CODE
-		}
+		return true;
 	}
 
 	async recoverProjectGroup(groupId) {
 
-		const groupInfo = await this.getProjectGroupById(groupId);
+		const { isCompleted, message } = await super.query(projectSQL.recoverGroup, [groupId]);
 
-		if (!groupInfo) {
-			return {
-				isCompleted: false,
-				message: RESPONSE_CODE.ERROR.NOT_FOUND.CODE,
-			}
+		if (!isCompleted) {
+			throw message;
 		}
 
-		if (!groupInfo.is_deleted) {
-			return {
-				isCompleted: false,
-				message: RESPONSE_CODE.ERROR.NOT_IN_SOFT_DELETE.CODE,
-			}
-		}
-
-		const recoverGroup = await super.query(projectSQL.recoverGroup, [groupId]);
-
-		if (!recoverGroup.isCompleted) {
-			throw new Error(recoverGroup.message);
-		}
-
-		return {
-			isCompleted: true,
-			message: RESPONSE_CODE.SUCCESS.SUCCESS_RECOVER.CODE
-		}
+		return true
 	}
 
 	async permanentDeleteProjectGroup(groupId) {
 
-		const groupInfo = await this.getProjectGroupById(groupId);
+		const groupInfo = await this.getGroupById(groupId);
 
-		if (!groupInfo) {
-			return {
-				isCompleted: false,
-				message: RESPONSE_CODE.ERROR.NOT_FOUND.CODE
-			}
+
+		const { isCompleted, message } = await super.query(projectSQL.deleteProjectGroup, [groupId]);
+
+		if (!isCompleted) {
+			throw message;
 		}
 
-		if (!groupInfo.is_deleted) {
-			return {
-				isCompleted: false,
-				message: RESPONSE_CODE.ERROR.NOT_IN_SOFT_DELETE.CODE
-			}
-		}
-
-		const deleteGroup = await super.query(projectSQL.deleteProjectGroup, [groupId]);
-
-		if (!deleteGroup.isCompleted) {
-			throw new Error(deleteGroup.message);
-		}
-
-		return {
-			isCompleted: true,
-			message: RESPONSE_CODE.SUCCESS.SUCCESS_DELETE.CODE
-		}
+		return true;
 	}
 
 }

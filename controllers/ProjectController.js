@@ -1,5 +1,7 @@
 const BaseController = require("./BaseController");
 const ProjectService = require("../services/ProjectService");
+const { RESPONSE_CODE } = require("../constants/response-code")
+const generateUniqueString = require("../utils/generate-unique-string");
 
 class ProjectController extends BaseController {
 	constructor() {
@@ -9,20 +11,37 @@ class ProjectController extends BaseController {
 	async createNewProject(req, res, next) {
 		try {
 			const {
-				isCompleted,
-				message,
-				results
-			} = await ProjectService.createNewProject(req.body, req.files.project_thumbnail && req.files.project_thumbnail[0], req.files.project_images)
+				project_fullname,
+				project_shortname,
+				start_date,
+				end_date,
+				short_description,
+				article_body,
+				group_id,
+				github_link,
+				demo_link
+			} = req.body;
 
-			if (!isCompleted) {
-				return next({
-					status: 404,
-					message,
-					results: [],
-				})
-			}
+			const projectThumbnail = req.files.project_thumbnail && req.files.project_thumbnail[0];
 
-			return super.createResponse(res, 200, message, results)
+			const projectImages = req.files.project_images;
+
+			const projectThumbnailName = `projectThumbnail_${generateUniqueString()}`;
+
+			const projectImageNames = projectImages ? projectImages.map((_v) => `projectImage_${generateUniqueString()}`) : [];
+
+			const newProjectId = await ProjectService.insertProject(project_fullname, project_shortname, start_date, end_date, short_description, projectThumbnailName, group_id, github_link, demo_link);
+
+			await Promise.all([
+				ProjectService.insertArticle(newProjectId, article_body),
+				ProjectService.insertListProjectImageNames(newProjectId, projectImageNames),
+				projectThumbnail && ProjectService.uploadProjectThumbnail(projectThumbnail, projectThumbnailName),
+				projectImages && projectImages.map((imageFile, index) => ProjectService.uploadProjectImage(imageFile, projectImageNames[index])),
+			])
+
+			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS.SUCCESS_CREATE.CODE, {
+				newProjectId
+			})
 
 		} catch (error) {
 			return super.createResponse(res, 500, error)
@@ -32,13 +51,9 @@ class ProjectController extends BaseController {
 	async getAllProjects(req, res, next) {
 		try {
 
-			const { isCompleted, message, results } = await ProjectService.getAllProjects();
+			const listProjects = await ProjectService.getAllProjects();
 
-			if (!isCompleted) {
-				return super.createResponse(res, 400, message);
-			}
-
-			return super.createResponse(res, 200, message, results)
+			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS.SUCCESS_GET_ALL.CODE, listProjects)
 
 
 		} catch (error) {
@@ -51,21 +66,13 @@ class ProjectController extends BaseController {
 
 			const { projectId } = req.params;
 
-			const {
-				isCompleted,
-				message,
-				results
-			} = await ProjectService.getProjectDetails(projectId)
+			const projectInfo = await ProjectService.getProjectInfoById(projectId, true, true);
 
-			if (!isCompleted) {
-				return next({
-					status: 404,
-					message,
-					results: [],
-				})
+			if (!projectInfo) {
+				return super.createResponse(res, 404, RESPONSE_CODE.ERROR.NOT_FOUND.CODE);
 			}
 
-			return super.createResponse(res, 200, message, results)
+			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS.SUCCESS_GET_ONE.CODE, projectInfo)
 
 		} catch (error) {
 			return super.createResponse(res, 500, error)
@@ -78,16 +85,43 @@ class ProjectController extends BaseController {
 			const { projectId } = req.params;
 
 			const {
-				isCompleted,
-				message
-			} = await ProjectService.updateProjectDetails(projectId, req.body, req.files.project_thumbnail && req.files.project_thumbnail[0], req.files.project_images);
+				project_fullname,
+				project_shortname,
+				start_date,
+				end_date,
+				short_description,
+				article_body,
+				group_id,
+				github_link,
+				demo_link,
+				remove_images,
+			} = req.body;
 
-			if (!isCompleted) {
-				return super.createResponse(res, 400, message);
+			const projectThumbnail = req.files.project_thumbnail && req.files.project_thumbnail[0];
+
+			const projectImages = req.files.project_images;
+
+			const projectImageNames = projectImages ? projectImages.map((_v) => `projectImage_${generateUniqueString()}`) : [];
+
+			const projectInfo = await ProjectService.getProjectInfoById(projectId);
+
+			if (!projectInfo) {
+				return super.createResponse(res, 404, RESPONSE_CODE.ERROR.NOT_FOUND.CODE);
 			}
 
+			const removeImages = JSON.parse(remove_images);
 
-			return super.createResponse(res, 200, message)
+			await Promise.all([
+				ProjectService.updateProjectDetails(projectId, project_fullname, project_shortname, start_date, end_date, short_description, group_id, github_link, demo_link),
+				removeImages && removeImages.map((imageName) => ProjectService.s3Delete(imageName)),
+				ProjectService.removeListProjectImageNames(projectId, removeImages),
+				projectThumbnail && ProjectService.uploadProjectThumbnail(projectThumbnail, projectInfo.project_thumbnail_name),
+				projectImages && projectImages.map((imageFile, index) => ProjectService.uploadProjectImage(imageFile, projectImageNames[index])),
+				ProjectService.insertListProjectImageNames(projectId, projectImageNames),
+				ProjectService.updateProjectArticle(projectId, article_body),
+			])
+
+			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS.SUCCESS_UPDATE.CODE);
 
 		} catch (error) {
 			return super.createResponse(res, 500, error)
@@ -99,13 +133,23 @@ class ProjectController extends BaseController {
 
 			const { projectId } = req.params;
 
-			const { isCompleted, message } = await ProjectService.deleteProject(projectId);
+			const projectInfo = await ProjectService.getProjectInfoById(projectId);
 
-			if (!isCompleted) {
-				return super.createResponse(res, 400, message);
+			if (!projectInfo) {
+				return super.createResponse(res, 404, RESPONSE_CODE.ERROR.NOT_FOUND.CODE);
 			}
 
-			return super.createResponse(res, 200, message)
+			const listProjectImages = (await ProjectService.getListProjectImages(projectId)).map((img) => img.image_name);
+
+
+			await Promise.all([
+				ProjectService.deleteProject(projectId),
+				ProjectService.s3Delete(projectInfo.project_thumbnail_name),
+				ProjectService.removeListProjectImageNames(projectId, listProjectImages),
+				listProjectImages && listProjectImages.map((imageName) => ProjectService.s3Delete(imageName))
+			])
+
+			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS.SUCCESS_DELETE.CODE)
 
 		} catch (error) {
 			return super.createResponse(res, 500, error)
@@ -115,13 +159,9 @@ class ProjectController extends BaseController {
 	async getListProjectGroups(req, res, next) {
 		try {
 
-			const { isCompleted, message, results } = await ProjectService.getAllProjectGroups();
+			const listGroups = await ProjectService.getAllProjectGroups();
 
-			if (!isCompleted) {
-				return super.createResponse(res, 400, message);
-			}
-
-			return super.createResponse(res, 200, message, results)
+			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS.SUCCESS_GET_ALL.CODE, listGroups)
 
 		} catch (error) {
 			return super.createResponse(res, 500, error)
@@ -131,15 +171,13 @@ class ProjectController extends BaseController {
 	async createNewProjectGroups(req, res, next) {
 		try {
 
+			const { newGroupTitle } = req.body
 
-			const { isCompleted, message } = await ProjectService.createNewProjectGroup(req.body);
+			const newGroupId = await ProjectService.createNewProjectGroup(newGroupTitle);
 
-
-			if (!isCompleted) {
-				return super.createResponse(res, 400, message);
-			}
-
-			return super.createResponse(res, 200, message)
+			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS.SUCCESS_CREATE.CODE, {
+				newGroupId
+			})
 
 
 		} catch (error) {
@@ -153,13 +191,16 @@ class ProjectController extends BaseController {
 			const { groupId } = req.params;
 
 			const { newGroupTitle } = req.body
-			const { isCompleted, message } = await ProjectService.updateProjectGroupInfo(groupId, newGroupTitle);
 
-			if (!isCompleted) {
-				return super.createResponse(res, 400, message);
+			const groupInfo = await ProjectService.getGroupById(groupId);
+
+			if (!groupInfo) {
+				return super.createResponse(res, 404, RESPONSE_CODE.ERROR.NOT_FOUND.CODE);
 			}
 
-			return super.createResponse(res, 200, message);
+			await ProjectService.updateProjectGroupInfo(groupId, newGroupTitle);
+
+			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS.SUCCESS_UPDATE.CODE);
 
 		} catch (error) {
 			return super.createResponse(res, 500, error)
@@ -171,13 +212,19 @@ class ProjectController extends BaseController {
 
 			const { groupId } = req.params;
 
-			const { isCompleted, message } = await ProjectService.softDeleteProjectGroup(groupId);
+			const groupInfo = await ProjectService.getGroupById(groupId);
 
-			if (!isCompleted) {
-				return super.createResponse(res, 400, message);
+			if (!groupInfo) {
+				return super.createResponse(res, 404, RESPONSE_CODE.ERROR.NOT_FOUND.CODE);
 			}
 
-			return super.createResponse(res, 200, message);
+			if (groupInfo.is_deleted === 1) {
+				return super.createResponse(res, 404, RESPONSE_CODE.ERROR.ALREADY_IN_SOFT_DELETE.CODE);
+			}
+
+			await ProjectService.softDeleteProjectGroup(groupId);
+
+			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS.SUCCESS_DELETE.CODE);
 		} catch (error) {
 			return super.createResponse(res, 500, error)
 		}
@@ -189,13 +236,20 @@ class ProjectController extends BaseController {
 
 			const { groupId } = req.params;
 
-			const { isCompleted, message } = await ProjectService.recoverProjectGroup(groupId);
+			const groupInfo = await ProjectService.getGroupById(groupId);
 
-			if (!isCompleted) {
-				return super.createResponse(res, 400, message);
+			if (!groupInfo) {
+				return super.createResponse(res, 404, RESPONSE_CODE.ERROR.NOT_FOUND.CODE);
 			}
 
-			return super.createResponse(res, 200, message);
+			if (groupInfo.is_deleted === 0) {
+				return super.createResponse(res, 404, RESPONSE_CODE.ERROR.NOT_IN_SOFT_DELETE.CODE);
+			}
+
+			await ProjectService.recoverProjectGroup(groupId);
+
+			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS.SUCCESS_RECOVER.CODE);
+
 		} catch (error) {
 			return super.createResponse(res, 500, error)
 		}
@@ -207,13 +261,19 @@ class ProjectController extends BaseController {
 
 			const { groupId } = req.params;
 
-			const { isCompleted, message } = await ProjectService.permanentDeleteProjectGroup(groupId);
+			const groupInfo = await ProjectService.getGroupById(groupId);
 
-			if (!isCompleted) {
-				return super.createResponse(res, 400, message);
+			if (!groupInfo) {
+				return super.createResponse(res, 404, RESPONSE_CODE.ERROR.NOT_FOUND.CODE);
 			}
 
-			return super.createResponse(res, 200, message);
+			if (groupInfo.is_deleted === 0) {
+				return super.createResponse(res, 404, RESPONSE_CODE.ERROR.NOT_IN_SOFT_DELETE.CODE);
+			}
+
+			await ProjectService.permanentDeleteProjectGroup(groupId);
+
+			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS.SUCCESS_DELETE.CODE);
 
 		} catch (error) {
 			return super.createResponse(res, 500, error)
