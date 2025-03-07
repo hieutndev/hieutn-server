@@ -1,6 +1,7 @@
 const BaseController = require("./BaseController")
 const EducationService = require("../services/EducationService")
 const Message = require("../utils/response-message")
+const { RESPONSE_CODE } = require("../constants/response-code");
 
 class EducationController extends BaseController {
 	constructor() {
@@ -10,13 +11,9 @@ class EducationController extends BaseController {
 	async getListEducation(req, res, next) {
 		try {
 
-			const { isCompleted, message, results } = await EducationService.getAllEducation();
+			const listEdu = await EducationService.getAllEducation();
 
-			if (!isCompleted) {
-				return super.createResponse(res, 400, message)
-			}
-
-			return super.createResponse(res, 200, message, results)
+			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS.SUCCESS_GET_ALL, listEdu)
 
 		} catch (error) {
 			return super.createResponse(res, 500, error)
@@ -28,13 +25,13 @@ class EducationController extends BaseController {
 
 			const { educationId } = req.params;
 
-			const { isCompleted, message, results } = await EducationService.getEducationDetails(educationId);
+			const educationInfo = await EducationService.getEducationById(educationId);
 
-			if (!isCompleted) {
-				return super.createResponse(res, 400, message)
+			if (!educationInfo) {
+				return super.createResponse(res, 404, RESPONSE_CODE.ERROR.NOT_FOUND.CODE);
 			}
 
-			return super.createResponse(res, 200, message, results)
+			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS.SUCCESS_GET_ONE.CODE, educationInfo)
 
 		} catch (error) {
 			return super.createResponse(res, 500, error)
@@ -43,13 +40,13 @@ class EducationController extends BaseController {
 
 	async addNewEducation(req, res, next) {
 		try {
-			const { isCompleted, message, results } = await EducationService.addNewEducation(req.body);
+			const { title, organization, time_start, time_end } = req.body;
 
-			if (!isCompleted) {
-				return super.createResponse(res, 400, message)
-			}
+			const newEduId = await EducationService.addNewEducation(title, organization, time_start, time_end);
 
-			return super.createResponse(res, 200, message, results)
+			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS.SUCCESS_CREATE, {
+				newEduId
+			})
 		} catch (error) {
 			return super.createResponse(res, 500, error)
 		}
@@ -60,16 +57,17 @@ class EducationController extends BaseController {
 
 			const { educationId } = req.params;
 
-			const {
-				isCompleted,
-				message,
-			} = await EducationService.updateEducationDetails(educationId, req.body);
+			const { title, organization, time_start, time_end } = req.body;
 
-			if (!isCompleted) {
-				return super.createResponse(res, 400, message)
+			const eduInfo = await EducationService.getEducationById(educationId);
+
+			if (!eduInfo) {
+				return super.createResponse(res, 404, RESPONSE_CODE.ERROR.NOT_FOUND.CODE);
 			}
 
-			return super.createResponse(res, 200, message)
+			await EducationService.updateEducationDetails(educationId, title, organization, time_start, time_end);
+
+			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS.SUCCESS_UPDATE.CODE)
 
 		} catch (error) {
 			return super.createResponse(res, 500, error)
@@ -81,13 +79,19 @@ class EducationController extends BaseController {
 
 			const { educationId } = req.params;
 
-			const { isCompleted, message } = await EducationService.softDeleteEducation(educationId);
+			const eduInfo = await EducationService.getEducationById(educationId);
 
-			if (!isCompleted) {
-				return super.createResponse(res, 400, message)
+			if (!eduInfo) {
+				return super.createResponse(res, 404, RESPONSE_CODE.ERROR.NOT_FOUND.CODE);
 			}
 
-			return super.createResponse(res, 200, message)
+			if (eduInfo.is_deleted === 1) {
+				return super.createResponse(res, 404, RESPONSE_CODE.ERROR.ALREADY_IN_SOFT_DELETE.CODE)
+			}
+
+			await EducationService.softDeleteEducation(educationId);
+
+			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS.SUCCESS_DELETE.CODE)
 
 		} catch (error) {
 			return super.createResponse(res, 500, error)
@@ -99,13 +103,20 @@ class EducationController extends BaseController {
 
 			const { educationId } = req.params;
 
-			const { isCompleted, message } = await EducationService.permanentDeleteEducation(educationId);
+			const eduInfo = await EducationService.getEducationById(educationId);
 
-			if (!isCompleted) {
-				return super.createResponse(res, 400, message)
+			if (!eduInfo) {
+				return super.createResponse(res, 404, RESPONSE_CODE.ERROR.NOT_FOUND.CODE);
 			}
 
-			return super.createResponse(res, 200, message)
+			if (eduInfo.is_deleted === 0) {
+				return super.createResponse(res, 404, RESPONSE_CODE.ERROR.NOT_IN_SOFT_DELETE.CODE)
+			}
+
+			await EducationService.permanentDeleteEducation(educationId);
+
+			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS.SUCCESS_DELETE.CODE)
+
 
 		} catch (error) {
 			return super.createResponse(res, 500, error)
@@ -117,13 +128,19 @@ class EducationController extends BaseController {
 
 			const { educationId } = req.params;
 
-			const { isCompleted, message } = await EducationService.recoverEducation(educationId);
+			const eduInfo = await EducationService.getEducationById(educationId);
 
-			if (!isCompleted) {
-				return super.createResponse(res, 400, message)
+			if (!eduInfo) {
+				return super.createResponse(res, 404, RESPONSE_CODE.ERROR.NOT_FOUND.CODE);
 			}
 
-			return super.createResponse(res, 200, message)
+			if (eduInfo.is_deleted === 0) {
+				return super.createResponse(res, 404, RESPONSE_CODE.ERROR.NOT_IN_SOFT_DELETE.CODE)
+			}
+
+			await EducationService.recoverEducation(educationId);
+
+			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS.SUCCESS_RECOVER.CODE)
 
 		} catch (error) {
 			return super.createResponse(res, 500, error)
