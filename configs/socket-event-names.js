@@ -10,6 +10,11 @@ const SOCKET_EVENT_NAMES = {
 			SEND: "roomClosed",
 			ERROR: "errorCloseRoom",
 		},
+		REOPEN_ROOM: {
+			RECEIVE: "reOpenRoom",
+			SEND: "roomReOpened",
+			ERROR: "errorReOpenRoom",
+		},
 		CREATE_RESULT: {
 			RECEIVE: "createNewResult",
 			SEND: "newResultCreated",

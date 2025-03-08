@@ -13,5 +13,5 @@ router.get("/:roomId/results", GameCardController.getRoomResults)
 router.get("/:roomId", GameCardController.getRoomDetails)
 router.patch("/:roomId", GameCardController.updateRoomConfig)
 router.patch("/:roomId/close-room", GameCardController.closeRoom)
-
+router.delete("/:roomId/matches/:matchId", GameCardController.deleteMatchResult);
 module.exports = router;

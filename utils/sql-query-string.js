@@ -51,12 +51,9 @@ const QueryString = {
                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		createTwoPlayResult: `INSERT INTO ${TABLE_NAMES.CARD_GAME_TWO_PLAY_RESULTS}(room_id, match_id, two_color, taker, burner, quantity)
                               VALUES (?, ?, ?, ?, ?, ?)`,
-		createNewMatchResult: `INSERT INTO ${TABLE_NAMES.CARD_GAME_MATCH_RESULTS}
-                               (room_id, match_id, player_index, \`rank\`, win_all, burnt_out, swept_out)
-                               VALUES (?, ?, ?, ?, ?, ?, ?),
-                                      (?, ?, ?, ?, ?, ?, ?),
-                                      (?, ?, ?, ?, ?, ?, ?),
-                                      (?, ?, ?, ?, ?, ?, ?)`,
+		createPlayerResult: `INSERT INTO ${TABLE_NAMES.CARD_GAME_MATCH_RESULTS}
+                             (room_id, match_id, player_index, \`rank\`, win_all, burnt_out, swept_out)
+                             VALUES (?, ?, ?, ?, ?, ?, ?)`,
 		updateRoomConfig: `UPDATE ${TABLE_NAMES.CARD_GAME_ROOM_CONFIGS}
                            SET first     = ?,
                                second    = ?,
@@ -70,6 +67,9 @@ const QueryString = {
 		closeRoom: `UPDATE ${TABLE_NAMES.CARD_GAME_ROOMS}
                     SET is_closed = 1
                     WHERE room_id = ?`,
+		reOpenRoom: `UPDATE ${TABLE_NAMES.CARD_GAME_ROOMS}
+                     SET is_closed = 0
+                     WHERE room_id = ?`,
 
 	},
 	badmintonSQL: {

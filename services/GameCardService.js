@@ -5,6 +5,7 @@ const Message = require("../utils/response-message")
 const { emailMasking } = require("../utils/data-masking");
 
 const { RESPONSE_CODE } = require("../constants/response-code")
+const { log } = require("debug");
 
 class GameCardService extends BaseService {
 	constructor() {
@@ -12,57 +13,53 @@ class GameCardService extends BaseService {
 	}
 
 	async getAllRooms() {
+		const { isCompleted, message, results } = await super.query(gameCardSQL.getAllRoomsAndConfig)
 
-
-		const listRooms = await super.query(gameCardSQL.getAllRoomsAndConfig)
-
-		if (!listRooms.isCompleted) {
-			throw new Error(listRooms.message)
+		if (!isCompleted) {
+			throw message;
 		}
 
-		return {
-			isCompleted: true,
-			message: RESPONSE_CODE.SUCCESS.SUCCESS_GET_ALL.CODE,
-			results: listRooms.results.reverse()
-		}
-
+		return results.reverse()
 	}
 
-	async createNewRoom(created_by, {
-		first,
-		second,
-		third,
-		fourth,
-		red_two,
-		black_two,
-		burnt_out,
-		swept_out,
-		player1_name,
-		player2_name,
-		player3_name,
-		player4_name
-	}) {
+	async createNewRoom(created_by) {
 
-		const createNewRoomStatus = await super.query(gameCardSQL.createNewRoom, [created_by])
+		const { isCompleted, message, results } = await super.query(gameCardSQL.createNewRoom, [created_by])
 
-		if (!createNewRoomStatus.isCompleted) {
-			throw new Error(createNewRoomStatus.message)
+		if (!isCompleted) {
+			throw message
 		}
 
-		const setRoomConfigStatus = await super.query(gameCardSQL.setNewRoomConfig, [createNewRoomStatus.results.insertId, first, second, third, fourth, red_two, black_two, burnt_out, swept_out, player1_name, player2_name, player3_name, player4_name])
+		return results.insertId
+	}
 
-		if (!setRoomConfigStatus.isCompleted) {
-			await super.query(gameCardSQL.deleteRoom, [createNewRoomStatus.results.insertId])
-			throw new Error(setRoomConfigStatus.message)
+	async setRoomConfig(
+		roomId, {
+			first,
+			second,
+			third,
+			fourth,
+			red_two,
+			black_two,
+			burnt_out,
+			swept_out,
+			player1_name,
+			player2_name,
+			player3_name,
+			player4_name
+		}
+	) {
+		const {
+			isCompleted,
+			message,
+			results
+		} = await super.query(gameCardSQL.setNewRoomConfig, [roomId, first, second, third, fourth, red_two, black_two, burnt_out, swept_out, player1_name, player2_name, player3_name, player4_name])
+
+		if (!isCompleted) {
+			throw message;
 		}
 
-		return {
-			isCompleted: true,
-			message: RESPONSE_CODE.SUCCESS.SUCCESS_CREATE.CODE,
-			results: {
-				newRoomId: createNewRoomStatus.results.insertId,
-			}
-		}
+		return true;
 	}
 
 	async getRoomInfoById(roomId) {
@@ -77,32 +74,6 @@ class GameCardService extends BaseService {
 		}
 		return roomInfo.results[0]
 
-	}
-
-	async getRoomInfo(roomId) {
-		try {
-
-			const roomInfo = await this.getRoomInfoById(roomId);
-
-			if (!roomInfo) {
-				return {
-					isCompleted: false,
-					message: RESPONSE_CODE.ERROR.NOT_FOUND.CODE,
-				}
-			}
-
-			return {
-				isCompleted: true,
-				message: RESPONSE_CODE.SUCCESS.SUCCESS_GET_ONE.CODE,
-				results: roomInfo
-			}
-
-		} catch (error) {
-			return {
-				isCompleted: false,
-				message: error
-			}
-		}
 	}
 
 	async getRoomPlayHistory(roomId) {
@@ -126,66 +97,45 @@ class GameCardService extends BaseService {
 		return listId.length > 0 ? Math.max(...listId) + 1 : 1;
 	}
 
-	async insertNewResult(roomId, player1Result, player2Result, player3Result, player4Result, twoPlayResults) {
+	async createPlayerResult(roomId, matchId, playerIndex, { rank, win_all, burnt_out, swept_out }) {
+		const {
+			isCompleted,
+			message
+		} = await super.query(gameCardSQL.createPlayerResult, [roomId, matchId, playerIndex, rank, win_all, burnt_out, swept_out])
 
-		let playHistory = null;
-
-		try {
-			playHistory = await this.getRoomPlayHistory(roomId);
-		} catch (error) {
-			throw error;
+		if (!isCompleted) {
+			throw message;
 		}
 
-		const newMatchId = this.getNewMatchId(playHistory.matchResults);
+		return true
+	}
 
+	async createTwoPlayResults(roomId, matchId, twoPlayResults) {
 		if (Array.isArray(twoPlayResults) && twoPlayResults.length > 0) {
 			const mapQueryString = twoPlayResults.map((_r) => gameCardSQL.createTwoPlayResult).join(";")
-			const mapInsertValue = (twoPlayResults.map((_r) => [roomId, newMatchId, _r.two_color, _r.taker, _r.burner, _r.quantity])).flat();
-			const twoPlayResult = await this.queryMany(mapQueryString, mapInsertValue);
+			const mapInsertValue = (twoPlayResults.map((_r) => [roomId, matchId, _r.two_color, _r.taker, _r.burner, _r.quantity])).flat();
+			const { isCompleted, message } = await this.queryMany(mapQueryString, mapInsertValue);
 
-			if (twoPlayResult.isCompleted === false) {
-				throw new Error(twoPlayResult.message)
+			if (!isCompleted) {
+				throw message;
 			}
 		}
 
-		const player1Values = [roomId, newMatchId, 1, player1Result.rank, player1Result.win_all, player1Result.burnt_out, player1Result.swept_out]
-		const player2Values = [roomId, newMatchId, 2, player2Result.rank, player2Result.win_all, player2Result.burnt_out, player2Result.swept_out]
-		const player3Values = [roomId, newMatchId, 3, player3Result.rank, player3Result.win_all, player3Result.burnt_out, player3Result.swept_out]
-		const player4Values = [roomId, newMatchId, 4, player4Result.rank, player4Result.win_all, player4Result.burnt_out, player4Result.swept_out]
-
-		const insertNewResultStatus = await this.query(gameCardSQL.createNewMatchResult, [...player1Values, ...player2Values, ...player3Values, ...player4Values])
-
-		if (!insertNewResultStatus.isCompleted) {
-			throw new Error(insertNewResultStatus.message)
-		}
-
-		return {
-			isCompleted: true,
-			message: RESPONSE_CODE.SUCCESS.SUCCESS_CREATE.CODE,
-		}
+		return true;
 	}
 
 	async updateRoomConfig(roomId, { first, second, third, fourth, red_two, black_two, burnt_out, swept_out }) {
 
-		const roomIdExist = await this.getRoomInfoById(roomId);
+		const {
+			isCompleted,
+			message
+		} = await this.query(gameCardSQL.updateRoomConfig, [first, second, third, fourth, red_two, black_two, burnt_out, swept_out, roomId])
 
-		if (!roomIdExist) {
-			return {
-				isCompleted: false,
-				message: RESPONSE_CODE.ERROR.NOT_FOUND.CODE
-			}
+		if (!isCompleted) {
+			throw message
 		}
 
-		const updatedConfig = await this.query(gameCardSQL.updateRoomConfig, [first, second, third, fourth, red_two, black_two, burnt_out, swept_out, roomId])
-
-		if (!updatedConfig.isCompleted) {
-			throw new Error(updatedConfig.message)
-		}
-
-		return {
-			isCompleted: true,
-			message: RESPONSE_CODE.SUCCESS.SUCCESS_UPDATE.CODE,
-		}
+		return true
 	}
 
 	async getRoomConfig(roomId) {
@@ -310,12 +260,12 @@ class GameCardService extends BaseService {
 				};
 			}
 
-			Array.from({ length: (matchResults.length / 4) }).forEach((_, index) => {
+			const listMatchId = Array.from(new Set(matchResults.map((_m) => _m.match_id)));
+			console.log("listMatchId", listMatchId);
 
+			listMatchId.forEach((_) => {
 
-
-				const currentMatchResults = getResultOfMatch(index + 1);
-
+				const currentMatchResults = getResultOfMatch(_);
 
 				if (isWinAllMatch(currentMatchResults).isWinAllMatch) {
 
@@ -336,8 +286,6 @@ class GameCardService extends BaseService {
 							})
 						}
 					})
-
-
 
 
 				} else if (isBurntOutMatch(currentMatchResults).isBurntOutMatch) {
@@ -408,8 +356,7 @@ class GameCardService extends BaseService {
 
 			return matrixScore
 		} catch (error) {
-
-			throw new Error(error)
+			throw error;
 		}
 	}
 
@@ -418,29 +365,26 @@ class GameCardService extends BaseService {
 		try {
 			const [playHistory, roomConfig] = await Promise.all([this.getRoomPlayHistory(roomId), this.getRoomConfig(roomId)])
 
+			console.log(playHistory, roomConfig)
 
 			return {
-				isCompleted: true,
-				message: Message.successGetAll(`Room ${roomId} results`),
-				results: {
-					scoreBoard: {
-						totalScore: {
-							player1: this.calculateTotalScore(1, roomConfig, playHistory),
-							player2: this.calculateTotalScore(2, roomConfig, playHistory),
-							player3: this.calculateTotalScore(3, roomConfig, playHistory),
-							player4: this.calculateTotalScore(4, roomConfig, playHistory),
-						},
-						matrixScore: this.calculateMatrixScore(roomConfig, playHistory),
+				scoreBoard: {
+					totalScore: {
+						player1: this.calculateTotalScore(1, roomConfig, playHistory),
+						player2: this.calculateTotalScore(2, roomConfig, playHistory),
+						player3: this.calculateTotalScore(3, roomConfig, playHistory),
+						player4: this.calculateTotalScore(4, roomConfig, playHistory),
 					},
-					historyScoreBoard: Array.from({ length: (playHistory.matchResults.length / 4) })
-						.map((_, index) => [
-							this.calculateTotalScore(1, roomConfig, playHistory, index + 1),
-							this.calculateTotalScore(2, roomConfig, playHistory, index + 1),
-							this.calculateTotalScore(3, roomConfig, playHistory, index + 1),
-							this.calculateTotalScore(4, roomConfig, playHistory, index + 1),
-						]),
-					playHistory: playHistory,
-				}
+					matrixScore: this.calculateMatrixScore(roomConfig, playHistory),
+				},
+				historyScoreBoard: Array.from({ length: (playHistory.matchResults.length / 4) })
+					.map((_, index) => [
+						this.calculateTotalScore(1, roomConfig, playHistory, index + 1),
+						this.calculateTotalScore(2, roomConfig, playHistory, index + 1),
+						this.calculateTotalScore(3, roomConfig, playHistory, index + 1),
+						this.calculateTotalScore(4, roomConfig, playHistory, index + 1),
+					]),
+				playHistory: playHistory,
 			}
 
 
@@ -451,20 +395,29 @@ class GameCardService extends BaseService {
 
 	async closeRoom(roomId) {
 
-		const closeRoomResult = await this.query(gameCardSQL.closeRoom, [roomId]);
+		const { isCompleted, message } = await this.query(gameCardSQL.closeRoom, [roomId]);
 
-		if (!closeRoomResult.isCompleted) {
-			throw new Error(closeRoomResult.message)
+		if (!isCompleted) {
+			throw message
 		}
 
-		return {
-			isCompleted: true,
-			message: RESPONSE_CODE.SUCCESS.SUCCESS_UPDATE.CODE,
-		}
+		return true
 
 	}
 
-	async deleteResults(roomId, matchId) {
+	async reOpenRoom(roomId) {
+
+		const { isCompleted, message } = await this.query(gameCardSQL.reOpenRoom, [roomId]);
+
+		if (!isCompleted) {
+			throw message
+		}
+
+		return true
+
+	}
+
+	async deleteMatchResults(roomId, matchId) {
 
 		const deleteMatchResults = await super.queryMany(gameCardSQL.deleteMatchResults, [roomId, matchId, roomId, matchId]);
 

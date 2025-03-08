@@ -21,14 +21,19 @@ class SocketController {
 	async gcCreateNewRoom({ created_by, roomConfig }) {
 
 		try {
-			const createNewRoom = await GameCardService.createNewRoom(created_by, roomConfig);
-			if (createNewRoom.isCompleted) {
-				const getListRooms = await GameCardService.getAllRooms();
-				this.io.emit(SOCKET_EVENT_NAMES.GAME_CARD.CREATE_NEW_ROOM.SEND, {
-					newRoomId: createNewRoom.results.newRoomId,
-					listRooms: getListRooms.results
-				});
+			const newRoomId = await GameCardService.createNewRoom(created_by);
+
+			if (newRoomId) {
+				await GameCardService.setRoomConfig(newRoomId, roomConfig);
 			}
+
+			const listRooms = await GameCardService.getAllRooms();
+
+			this.io.emit(SOCKET_EVENT_NAMES.GAME_CARD.CREATE_NEW_ROOM.SEND, {
+				newRoomId,
+				listRooms
+			});
+
 		} catch (error) {
 			console.log(error)
 		}
@@ -60,22 +65,33 @@ class SocketController {
 	}
 
 	async gcCreateNewResult({
-		roomId,
-		player1Result,
-		player2Result,
-		player3Result,
-		player4Result,
-		twoPlayResults,
-		createdBy
-	}) {
+								roomId,
+								player1Result,
+								player2Result,
+								player3Result,
+								player4Result,
+								twoPlayResults,
+								createdBy
+							}) {
 		try {
-			await GameCardService.insertNewResult(roomId, player1Result, player2Result, player3Result, player4Result, twoPlayResults);
+
+			const roomPlayHistory = await GameCardService.getRoomPlayHistory(roomId);
+
+			const newMatchId = GameCardService.getNewMatchId(roomPlayHistory.matchResults);
+
+			await Promise.all([
+				GameCardService.createPlayerResult(roomId, newMatchId, 1, player1Result),
+				GameCardService.createPlayerResult(roomId, newMatchId, 2, player2Result),
+				GameCardService.createPlayerResult(roomId, newMatchId, 3, player3Result),
+				GameCardService.createPlayerResult(roomId, newMatchId, 4, player4Result),
+				GameCardService.createTwoPlayResults(roomId, newMatchId, twoPlayResults)
+			])
 
 			const roomResults = await GameCardService.getRoomResults(roomId);
 
 			this.io.to(roomId.toString()).emit(SOCKET_EVENT_NAMES.GAME_CARD.CREATE_RESULT.SEND, {
 				createdBy,
-				roomResults: roomResults.results
+				roomResults,
 			});
 		} catch (error) {
 			this.io.to(roomId.toString()).emit(SOCKET_EVENT_NAMES.GAME_CARD.CREATE_RESULT.ERROR, { error: error.message || "x" });
@@ -84,13 +100,14 @@ class SocketController {
 
 	async gcDeleteMatchResult({ deleteBy, roomId, matchId }) {
 		try {
-			await GameCardService.deleteResults(roomId, matchId);
+
+			await GameCardService.deleteMatchResults(roomId, matchId);
 
 			const roomResults = await GameCardService.getRoomResults(roomId);
 
 			this.io.to(roomId.toString()).emit(SOCKET_EVENT_NAMES.GAME_CARD.DELETE_MATCH_RESULT.SEND, {
 				deleteBy,
-				roomResults: roomResults.results
+				roomResults
 			});
 		} catch (error) {
 			this.io.to(roomId.toString()).emit(SOCKET_EVENT_NAMES.GAME_CARD.DELETE_MATCH_RESULT.ERROR, { error: error.message });
@@ -99,11 +116,7 @@ class SocketController {
 
 	async gcUpdateRoomConfig({ roomId, updatedBy, newConfig }) {
 		try {
-			const updateRoomConfig = await GameCardService.updateRoomConfig(roomId, newConfig);
-
-			if (!updateRoomConfig.isCompleted) {
-				this.io.to(roomId.toString()).emit(SOCKET_EVENT_NAMES.GAME_CARD.UPDATE_ROOM_CONFIG.ERROR, { error: updateRoomConfig.message });
-			}
+			await GameCardService.updateRoomConfig(roomId, newConfig);
 
 			const roomDetails = await GameCardService.getRoomInfoById(roomId);
 
@@ -122,21 +135,43 @@ class SocketController {
 		try {
 			await GameCardService.closeRoom(roomId);
 
-			await Promise.all([GameCardService.getRoomInfo(roomId), GameCardService.getAllRooms()])
-				.then(([roomInfo, getListRooms]) => {
+			await Promise.all([GameCardService.getRoomInfoById(roomId), GameCardService.getAllRooms()])
+				.then(([roomDetails, listRooms]) => {
 					this.io.emit(SOCKET_EVENT_NAMES.GAME_CARD.CLOSE_ROOM.SEND, {
 						closedBy,
-						roomDetails: roomInfo.results,
-						listRooms: getListRooms.results
+						roomDetails,
+						listRooms
 					});
 					this.io.to(roomId.toString()).emit(SOCKET_EVENT_NAMES.GAME_CARD.CLOSE_ROOM.SEND, {
 						closedBy,
-						roomDetails: roomInfo.results
+						roomDetails
 					});
 				})
 
 		} catch (error) {
 			this.io.to(roomId.toString()).emit(SOCKET_EVENT_NAMES.GAME_CARD.CLOSE_ROOM.ERROR, { error: error.message });
+		}
+	}
+
+	async gcReOpenRoom({ roomId, reOpenBy }) {
+		try {
+			await GameCardService.reOpenRoom(roomId);
+
+			await Promise.all([GameCardService.getRoomInfoById(roomId), GameCardService.getAllRooms()])
+				.then(([roomDetails, listRooms]) => {
+					this.io.emit(SOCKET_EVENT_NAMES.GAME_CARD.REOPEN_ROOM.SEND, {
+						reOpenBy,
+						roomDetails,
+						listRooms
+					});
+					this.io.to(roomId.toString()).emit(SOCKET_EVENT_NAMES.GAME_CARD.REOPEN_ROOM.SEND, {
+						reOpenBy,
+						roomDetails
+					});
+				})
+
+		} catch (error) {
+			this.io.to(roomId.toString()).emit(SOCKET_EVENT_NAMES.GAME_CARD.REOPEN_ROOM.ERROR, { error: error.message });
 		}
 	}
 
@@ -156,6 +191,8 @@ class SocketController {
 			socket.on(SOCKET_EVENT_NAMES.GAME_CARD.DELETE_MATCH_RESULT.RECEIVE, async (deleteData) => this.gcDeleteMatchResult(deleteData))
 
 			socket.on(SOCKET_EVENT_NAMES.GAME_CARD.CLOSE_ROOM.RECEIVE, async (closeData) => await this.gcCloseRoom(closeData))
+			
+			socket.on(SOCKET_EVENT_NAMES.GAME_CARD.REOPEN_ROOM.RECEIVE, async (reopenData) => await this.gcReOpenRoom(reopenData))
 
 			socket.on("disconnect", () => {
 
