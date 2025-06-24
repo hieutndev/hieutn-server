@@ -67,7 +67,6 @@ jobs:
 
                       # Install dependencies and build
                       npm install --legacy-peer-deps
-                      NODE_OPTIONS="--max-old-space-size=4096" npm start
 
                       # Start the application
                       pm2 start --name hieutn-server "npm start"
