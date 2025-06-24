@@ -42,7 +42,7 @@ class AccountService extends BaseService {
 		const queryAccountByEmail = await super.query(accountSQL.getAccountByEmail, [email])
 
 		if (!queryAccountByEmail.isCompleted) {
-			throw RESPONSE_CODE.ERROR.EMAIL_NOT_FOUND.CODE
+			return [];
 		}
 
 		return queryAccountByEmail.results
@@ -53,7 +53,7 @@ class AccountService extends BaseService {
 		const queryAccountByUsername = await super.query(accountSQL.getAccountByUsername, [username])
 
 		if (!queryAccountByUsername.isCompleted) {
-			throw RESPONSE_CODE.ERROR.USERNAME_NOT_FOUND.CODE
+			return [];
 		}
 
 		return queryAccountByUsername.results
@@ -65,7 +65,7 @@ class AccountService extends BaseService {
 		const queryAccountById = await super.query(accountSQL.getAccountById, [userId])
 
 		if (!queryAccountById.isCompleted) {
-			throw RESPONSE_CODE.ERROR.USER_ID_NOT_FOUND.CODE
+			return [];
 		}
 
 		return queryAccountById.results
@@ -75,7 +75,7 @@ class AccountService extends BaseService {
 	async isAccountExist(searchValue, searchBy) {
 
 		if (!["email", "id", "username"].includes(searchBy)) {
-			throw RESPONSE_CODE.ERROR.INVALID_FIELD_VALUE.CODE
+			throw RESPONSE_CODE.INVALID_SEARCH_TYPE_VALUE
 		}
 
 		try {
@@ -109,11 +109,7 @@ class AccountService extends BaseService {
 
 	async comparePassword(inputPassword, hashedPassword) {
 
-		if (await bcrypt.compare(inputPassword, hashedPassword)) {
-			return true;
-		} else {
-			throw RESPONSE_CODE.ERROR.WRONG_PASSWORD.CODE
-		}
+		return !!(await bcrypt.compare(inputPassword, hashedPassword));
 	}
 
 	async signUp(username, email, password) {

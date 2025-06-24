@@ -15,12 +15,12 @@ class AppController extends BaseController {
 			const validFilter = ["all", "onlyShow", "onlyHide"];
 
 			if (!validFilter.includes(filter)) {
-				return super.createResponse(res, 404, RESPONSE_CODE.ERROR.INVALID_FIELD_VALUE.CODE);
+				return super.createResponse(res, 404, RESPONSE_CODE.INVALID_FILTER_APP);
 			}
 
 			const listApps = await AppService.getAllApps(filter);
 
-			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS.SUCCESS_GET_ALL.CODE, listApps)
+			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS_GET_ALL_APPS, listApps)
 
 		} catch (error) {
 			return super.createResponse(res, 500, error)
@@ -35,10 +35,10 @@ class AppController extends BaseController {
 			const appInfo = await AppService.getAppById(appId, true);
 
 			if (!appInfo) {
-				return super.createResponse(res, 404, RESPONSE_CODE.ERROR.NOT_FOUND.CODE)
+				return super.createResponse(res, 404, RESPONSE_CODE.APP_NOT_FOUND)
 			}
 
-			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS.SUCCESS_GET_ONE.CODE, appInfo)
+			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS_GET_APP_INFO, appInfo)
 
 		} catch (error) {
 			return super.createResponse(res, 500, error)
@@ -60,7 +60,7 @@ class AppController extends BaseController {
 
 			const newAppId = await AppService.createNewApp(app_name, app_link, appIconName)
 
-			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS.SUCCESS_CREATE.CODE, {
+			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS_ADD_APP, {
 				newAppId
 			})
 
@@ -79,7 +79,7 @@ class AppController extends BaseController {
 			const appInfo = await AppService.getAppById(appId);
 
 			if (!appInfo) {
-				return super.createResponse(res, 404, RESPONSE_CODE.ERROR.NOT_FOUND.CODE)
+				return super.createResponse(res, 404, RESPONSE_CODE.APP_NOT_FOUND)
 			}
 
 			await Promise.all([
@@ -87,7 +87,7 @@ class AppController extends BaseController {
 				AppService.updateAppInfo(appId, app_name, app_link),
 			]);
 
-			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS.SUCCESS_UPDATE.CODE)
+			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS_UPDATE_APP_INFO)
 
 		} catch (error) {
 			return super.createResponse(res, 500, error)
@@ -103,7 +103,7 @@ class AppController extends BaseController {
 
 			await AppService.updateAppDisplayStatus(appId, new_status)
 
-			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS.SUCCESS_UPDATE.CODE);
+			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS_UPDATE_APP_DISPLAY_STATUS);
 
 		} catch (error) {
 			return super.createResponse(res, 500, error)
@@ -118,12 +118,12 @@ class AppController extends BaseController {
 			const appInfo = await AppService.getAppById(appId);
 
 			if (!appInfo) {
-				return super.createResponse(res, 404, RESPONSE_CODE.ERROR.NOT_FOUND.CODE);
+				return super.createResponse(res, 404, RESPONSE_CODE.APP_NOT_FOUND);
 			}
 
 			await AppService.deleteApp(appId, appInfo.app_icon_name);
 
-			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS.SUCCESS_DELETE.CODE)
+			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS_DELETE_APP)
 
 		} catch (error) {
 			return super.createResponse(res, 500, error)

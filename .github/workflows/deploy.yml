@@ -1,70 +1,92 @@
 name: Auto Deploy in VPS after Push in Production
 
 on:
-  push:
-    branches:
-      - release
+    push:
+        branches:
+            - release
 jobs:
-  deploy:
-    name: Deploy project with Nginx
-    permissions:
-      deployments: write
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Repository
-        uses: "actions/checkout@v2"
-        with:
-          ref: release
-          token: ${{ secrets.PERSONAL_GITHUB_TOKEN }}
-      - name: Create GitHub deployment
-        uses: chrnorm/deployment-action@v2
-        id: deployment
-        with:
-          token: "${{ github.token }}"
-          environment-url: ${{ vars.MY_APP }}
-          environment: production
-      - name: Set up SSH Key and Deploy my App on Server
-        # run: |
-        uses: appleboy/ssh-action@master
-        env:
-          GITHUB_TOKEN: ${{ secrets.PERSONAL_GITHUB_TOKEN }}
-        with:
-          host: ${{ secrets.VPS_IP }}
-          username: ${{ secrets.VPS_USERNAME }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          passphrase: ${{ secrets.SSH_PASSPHRASE }}
-          password: ${{ secrets.SSH_PASSWORD }}
-          port: 22
-          script: |
-            eval $(ssh-agent -s)
-            ssh-add ~/.ssh/id_ed25519
-            cd /root/hieutn-server
-            
-            curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.4/install.sh | bash
-            export NVM_DIR="$HOME/.nvm"
-            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-            nvm install --lts
-            nvm use --lts  
-            npm install -g pm2
-            
-            git pull origin release
-            
-            pm2 restart 0 --update-env
+    deploy:
+        name: Deploy project with Nginx
+        permissions:
+            deployments: write
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout Repository
+              uses: "actions/checkout@v4"
+              with:
+                  ref: release
+                  token: ${{ secrets.PERSONAL_GITHUB_TOKEN }}
+            - name: Create GitHub deployment
+              uses: chrnorm/deployment-action@v2
+              id: deployment
+              with:
+                  token: "${{ github.token }}"
+                  environment-url: ${{ vars.MY_APP }}
+                  environment: production
+            - name: Set up SSH Key and Deploy my App on Server
+              uses: appleboy/ssh-action@v0.1.7
+              env:
+                  GITHUB_TOKEN: ${{ secrets.PERSONAL_GITHUB_TOKEN }}
+              with:
+                  host: ${{ secrets.VPS_IP }}
+                  username: ${{ secrets.VPS_USERNAME }}
+                  key: ${{ secrets.SSH_PRIVATE_KEY }}
+                  passphrase: ${{ secrets.SSH_PASSPHRASE }}
+                  password: ${{ secrets.SSH_PASSWORD }}
+                  port: 22
+                  script: |
+                      # Set up environment
+                      export NVM_DIR="$HOME/.nvm"
 
-      - name: Update deployment Status (success)
-        if: success()
-        uses: chrnorm/deployment-status@v2
-        with:
-          token: "${{ github.token }}"
-          environment-url: ${{ vars.MY_APP }}
-          state: "success"
-          deployment-id: ${{ steps.deployment.outputs.deployment_id }}
+                      # Install NVM if not exists
+                      if [ ! -d "$NVM_DIR" ]; then
+                          curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.4/install.sh | bash
+                      fi
 
-      - name: Update deployment status (failure)
-        if: failure()
-        uses: chrnorm/deployment-status@v2
-        with:
-          token: "${{ github.token }}"
-          environment-url: ${{ vars.MY_APP }}
-          state: "failure"
-          deployment-id: ${{ steps.deployment.outputs.deployment_id }}
+                      # Load NVM
+                      [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+                      [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
+
+                      # Install and use Node.js LTS
+                      nvm install --lts
+                      nvm use --lts
+
+                      if ! command -v pm2 &> /dev/null; then
+                          npm install -g pm2
+                      fi
+
+                      # Navigate to project directory
+                      cd /root/hieutn-server
+
+                      # Stop the application
+                      pm2 stop hieutn-server || true
+                      pm2 delete hieutn-server || true
+
+                      # Pull latest code
+                      git pull origin release
+
+                      # Install dependencies and build
+                      npm install --legacy-peer-deps
+                      NODE_OPTIONS="--max-old-space-size=4096" npm start
+
+                      # Start the application
+                      pm2 start --name hieutn-server "npm start"
+                      pm2 save
+
+            - name: Update deployment Status (success)
+              if: success()
+              uses: chrnorm/deployment-status@v2
+              with:
+                  token: "${{ github.token }}"
+                  environment-url: ${{ vars.MY_APP }}
+                  state: "success"
+                  deployment-id: ${{ steps.deployment.outputs.deployment_id }}
+
+            - name: Update deployment status (failure)
+              if: failure()
+              uses: chrnorm/deployment-status@v2
+              with:
+                  token: "${{ github.token }}"
+                  environment-url: ${{ vars.MY_APP }}
+                  state: "failure"
+                  deployment-id: ${{ steps.deployment.outputs.deployment_id }}

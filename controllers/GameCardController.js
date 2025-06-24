@@ -13,7 +13,7 @@ class GameCardController extends BaseController {
 		try {
 			const gameRooms = await GameCardService.getAllRooms();
 
-			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS.SUCCESS_GET_ALL.CODE, gameRooms);
+			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS_GET_ALL_GC_ROOMS, gameRooms);
 
 		} catch (error) {
 			return super.createResponse(res, 500, error)
@@ -27,10 +27,10 @@ class GameCardController extends BaseController {
 			const roomInfo = await GameCardService.getRoomInfoById(roomId);
 
 			if (!roomInfo) {
-				return super.createResponse(res, 400, RESPONSE_CODE.ERROR.NOT_FOUND.CODE);
+				return super.createResponse(res, 400, RESPONSE_CODE.GC_ROOM_NOT_FOUND);
 			}
 
-			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS.SUCCESS_GET_ONE.CODE, roomInfo);
+			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS_GET_ROOM_INFO, roomInfo);
 
 		} catch (error) {
 			return super.createResponse(res, 500, error)
@@ -47,7 +47,7 @@ class GameCardController extends BaseController {
 				await GameCardService.setRoomConfig(newRoomId, roomConfig);
 			}
 
-			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS.SUCCESS_CREATE.CODE, {
+			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS_CREATE_GC_ROOM, {
 				newRoomId,
 			});
 		} catch (error) {
@@ -74,7 +74,7 @@ class GameCardController extends BaseController {
 				GameCardService.createTwoPlayResults(roomId, newMatchId, twoPlayResults)
 			])
 
-			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS.SUCCESS_CREATE.CODE);
+			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS_CREATE_GC_MATCH_RESULT);
 
 		} catch (error) {
 			return super.createResponse(res, 500, error)
@@ -90,12 +90,12 @@ class GameCardController extends BaseController {
 			const roomInfo = await GameCardService.getRoomInfoById(roomId);
 
 			if (!roomInfo) {
-				return super.createResponse(res, 404, RESPONSE_CODE.ERROR.NOT_FOUND.CODE);
+				return super.createResponse(res, 404, RESPONSE_CODE.GC_ROOM_NOT_FOUND);
 			}
 
 			await GameCardService.updateRoomConfig(roomId, newConfig);
 
-			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS.SUCCESS_UPDATE.CODE);
+			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS_UPDATE_GC_ROOM_CONFIG);
 		} catch (error) {
 			return super.createResponse(res, 500, error)
 		}
@@ -108,12 +108,12 @@ class GameCardController extends BaseController {
 			const roomInfo = await GameCardService.getRoomInfoById(roomId);
 
 			if (!roomInfo) {
-				return super.createResponse(res, 404, RESPONSE_CODE.ERROR.NOT_FOUND.CODE);
+				return super.createResponse(res, 404, RESPONSE_CODE.GC_ROOM_NOT_FOUND);
 			}
 
 			const roomResults = await GameCardService.getRoomResults(roomId);
 
-			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS.SUCCESS_GET_ONE.CODE, roomResults);
+			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS_GET_GC_ROOM_RESULTS, roomResults);
 
 		} catch (error) {
 			return super.createResponse(res, 500, error)
@@ -127,12 +127,12 @@ class GameCardController extends BaseController {
 			const roomInfo = await GameCardService.getRoomInfoById(roomId);
 
 			if (!roomInfo) {
-				return super.createResponse(res, 404, RESPONSE_CODE.ERROR.NOT_FOUND.CODE);
+				return super.createResponse(res, 404, RESPONSE_CODE.GC_ROOM_NOT_FOUND);
 			}
 
 			await GameCardService.closeRoom(roomId);
 
-			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS.SUCCESS_UPDATE.CODE);
+			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS_CLOSE_GC_ROOM);
 		} catch (error) {
 			return super.createResponse(res, 500, error)
 		}
@@ -146,12 +146,12 @@ class GameCardController extends BaseController {
 			const roomInfo = await GameCardService.getRoomInfoById(roomId);
 
 			if (!roomInfo) {
-				return super.createResponse(res, 404, RESPONSE_CODE.ERROR.NOT_FOUND.CODE);
+				return super.createResponse(res, 404, RESPONSE_CODE.GC_ROOM_NOT_FOUND);
 			}
 
 			await GameCardService.deleteMatchResults(roomId, matchId);
 
-			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS.SUCCESS_DELETE.CODE);
+			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS_DELETE_MATCH_RESULT);
 
 
 		} catch (error) {

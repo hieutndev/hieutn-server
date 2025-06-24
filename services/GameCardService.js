@@ -422,13 +422,10 @@ class GameCardService extends BaseService {
 		const deleteMatchResults = await super.queryMany(gameCardSQL.deleteMatchResults, [roomId, matchId, roomId, matchId]);
 
 		if (!deleteMatchResults.isCompleted) {
-			throw new Error(deleteMatchResults.message);
+			throw deleteMatchResults.message;
 		}
 
-		return {
-			isCompleted: true,
-			message: RESPONSE_CODE.SUCCESS.SUCCESS_DELETE.CODE,
-		}
+		return true
 	}
 
 }

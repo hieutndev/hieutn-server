@@ -13,7 +13,7 @@ class EmploymentController extends BaseController {
 			const listEmployment = await EmploymentService.getListEmployment();
 
 
-			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS.SUCCESS_GET_ALL.CODE, listEmployment)
+			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS_GET_ALL_EMPLOYMENTS, listEmployment)
 
 		} catch (error) {
 			return super.createResponse(res, 500, error)
@@ -27,7 +27,7 @@ class EmploymentController extends BaseController {
 
 			const newEmploymentId = await EmploymentService.addNewEmployment(title, organization, time_start, time_end);
 
-			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS.SUCCESS_CREATE.CODE, { newEmploymentId })
+			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS_ADD_EMPLOYMENT, { newEmploymentId })
 
 		} catch (error) {
 			return super.createResponse(res, 500, error)
@@ -42,10 +42,10 @@ class EmploymentController extends BaseController {
 			const employmentInfo = await EmploymentService.getEmploymentInfoById(employmentId);
 
 			if (!employmentInfo) {
-				return super.createResponse(res, 404, RESPONSE_CODE.ERROR.NOT_FOUND.CODE)
+				return super.createResponse(res, 404, RESPONSE_CODE.EMPLOYMENT_NOT_FOUND)
 			}
 
-			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS.SUCCESS_GET_ONE.CODE, employmentInfo);
+			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS_GET_EMPLOYMENT_INFO, employmentInfo);
 
 		} catch (error) {
 			return super.createResponse(res, 500, error)
@@ -62,12 +62,12 @@ class EmploymentController extends BaseController {
 			const employmentInfo = await EmploymentService.getEmploymentInfoById(employmentId);
 
 			if (!employmentInfo) {
-				return super.createResponse(res, 404, RESPONSE_CODE.ERROR.NOT_FOUND.CODE)
+				return super.createResponse(res, 404, RESPONSE_CODE.EMPLOYMENT_NOT_FOUND)
 			}
 
 			await EmploymentService.updateEmploymentDetails(employmentId, title, organization, time_start, time_end);
 
-			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS.SUCCESS_UPDATE.CODE)
+			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS_UPDATE_EMPLOYMENT_INFO)
 
 		} catch (error) {
 			return super.createResponse(res, 500, error)
@@ -82,16 +82,16 @@ class EmploymentController extends BaseController {
 			const employmentInfo = await EmploymentService.getEmploymentInfoById(employmentId);
 
 			if (!employmentInfo) {
-				return super.createResponse(res, 404, RESPONSE_CODE.ERROR.NOT_FOUND.CODE)
+				return super.createResponse(res, 404, RESPONSE_CODE.EMPLOYMENT_NOT_FOUND)
 			}
 
 			if (employmentInfo.is_deleted === 0) {
-				return super.createResponse(res, 404, RESPONSE_CODE.ERROR.NOT_IN_SOFT_DELETE.CODE);
+				return super.createResponse(res, 404, RESPONSE_CODE.NOT_IN_SOFT_DELETE);
 			}
 
 			await EmploymentService.permanentDeleteEmployment(employmentId)
 
-			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS.SUCCESS_DELETE.CODE)
+			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS_DELETE_EMPLOYMENT)
 
 		} catch (error) {
 			return super.createResponse(res, 500, error)
@@ -105,16 +105,16 @@ class EmploymentController extends BaseController {
 			const employmentInfo = await EmploymentService.getEmploymentInfoById(employmentId);
 
 			if (!employmentInfo) {
-				return super.createResponse(res, 404, RESPONSE_CODE.ERROR.NOT_FOUND.CODE)
+				return super.createResponse(res, 404, RESPONSE_CODE.EMPLOYMENT_NOT_FOUND)
 			}
 
 			if (employmentInfo.is_deleted === 1) {
-				return super.createResponse(res, 404, RESPONSE_CODE.ERROR.ALREADY_IN_SOFT_DELETE.CODE);
+				return super.createResponse(res, 404, RESPONSE_CODE.ALREADY_IN_SOFT_DELETE);
 			}
 
 			await EmploymentService.softDeleteEmployment(employmentId)
 
-			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS.SUCCESS_DELETE.CODE)
+			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS_DELETE_EMPLOYMENT)
 
 		} catch (error) {
 			return super.createResponse(res, 500, error)
@@ -128,16 +128,16 @@ class EmploymentController extends BaseController {
 			const employmentInfo = await EmploymentService.getEmploymentInfoById(employmentId);
 
 			if (!employmentInfo) {
-				return super.createResponse(res, 404, RESPONSE_CODE.ERROR.NOT_FOUND.CODE)
+				return super.createResponse(res, 404, RESPONSE_CODE.EMPLOYMENT_NOT_FOUND)
 			}
 
 			if (employmentInfo.is_deleted === 0) {
-				return super.createResponse(res, 404, RESPONSE_CODE.ERROR.NOT_IN_SOFT_DELETE.CODE);
+				return super.createResponse(res, 404, RESPONSE_CODE.NOT_IN_SOFT_DELETE);
 			}
 
 			await EmploymentService.recoverEmployment(employmentId)
 
-			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS.SUCCESS_RECOVER.CODE)
+			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS_RECOVER_EMPLOYMENT)
 
 		} catch (error) {
 			return super.createResponse(res, 500, error)

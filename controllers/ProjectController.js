@@ -39,7 +39,7 @@ class ProjectController extends BaseController {
 				projectImages && projectImages.map((imageFile, index) => ProjectService.uploadProjectImage(imageFile, projectImageNames[index])),
 			])
 
-			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS.SUCCESS_CREATE.CODE, {
+			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS_ADD_PROJECT, {
 				newProjectId
 			})
 
@@ -53,7 +53,7 @@ class ProjectController extends BaseController {
 
 			const listProjects = await ProjectService.getAllProjects();
 
-			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS.SUCCESS_GET_ALL.CODE, listProjects)
+			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS_GET_ALL_PROJECTS, listProjects)
 
 
 		} catch (error) {
@@ -69,10 +69,10 @@ class ProjectController extends BaseController {
 			const projectInfo = await ProjectService.getProjectInfoById(projectId, true, true);
 
 			if (!projectInfo) {
-				return super.createResponse(res, 404, RESPONSE_CODE.ERROR.NOT_FOUND.CODE);
+				return super.createResponse(res, 404, RESPONSE_CODE.PROJECT_NOT_FOUND);
 			}
 
-			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS.SUCCESS_GET_ONE.CODE, projectInfo)
+			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS_GET_PROJECT_INFO, projectInfo)
 
 		} catch (error) {
 			return super.createResponse(res, 500, error)
@@ -106,7 +106,7 @@ class ProjectController extends BaseController {
 			const projectInfo = await ProjectService.getProjectInfoById(projectId);
 
 			if (!projectInfo) {
-				return super.createResponse(res, 404, RESPONSE_CODE.ERROR.NOT_FOUND.CODE);
+				return super.createResponse(res, 404, RESPONSE_CODE.PROJECT_NOT_FOUND);
 			}
 
 			const removeImages = JSON.parse(remove_images);
@@ -121,7 +121,7 @@ class ProjectController extends BaseController {
 				ProjectService.updateProjectArticle(projectId, article_body),
 			])
 
-			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS.SUCCESS_UPDATE.CODE);
+			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS_UPDATE_PROJECT_INFO);
 
 		} catch (error) {
 			return super.createResponse(res, 500, error)
@@ -136,7 +136,7 @@ class ProjectController extends BaseController {
 			const projectInfo = await ProjectService.getProjectInfoById(projectId);
 
 			if (!projectInfo) {
-				return super.createResponse(res, 404, RESPONSE_CODE.ERROR.NOT_FOUND.CODE);
+				return super.createResponse(res, 404, RESPONSE_CODE.PROJECT_NOT_FOUND);
 			}
 
 			const listProjectImages = (await ProjectService.getListProjectImages(projectId)).map((img) => img.image_name);
@@ -149,7 +149,7 @@ class ProjectController extends BaseController {
 				listProjectImages && listProjectImages.map((imageName) => ProjectService.s3Delete(imageName))
 			])
 
-			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS.SUCCESS_DELETE.CODE)
+			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS_DELETE_PROJECT)
 
 		} catch (error) {
 			return super.createResponse(res, 500, error)
@@ -161,7 +161,7 @@ class ProjectController extends BaseController {
 
 			const listGroups = await ProjectService.getAllProjectGroups();
 
-			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS.SUCCESS_GET_ALL.CODE, listGroups)
+			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS_GET_ALL_PROJECT_GROUPS, listGroups)
 
 		} catch (error) {
 			return super.createResponse(res, 500, error)
@@ -175,7 +175,7 @@ class ProjectController extends BaseController {
 
 			const newGroupId = await ProjectService.createNewProjectGroup(newGroupTitle);
 
-			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS.SUCCESS_CREATE.CODE, {
+			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS_CREATE_PROJECT_GROUP, {
 				newGroupId
 			})
 
@@ -195,12 +195,12 @@ class ProjectController extends BaseController {
 			const groupInfo = await ProjectService.getGroupById(groupId);
 
 			if (!groupInfo) {
-				return super.createResponse(res, 404, RESPONSE_CODE.ERROR.NOT_FOUND.CODE);
+				return super.createResponse(res, 404, RESPONSE_CODE.PROJECT_GROUP_NOT_FOUND);
 			}
 
 			await ProjectService.updateProjectGroupInfo(groupId, newGroupTitle);
 
-			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS.SUCCESS_UPDATE.CODE);
+			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS_UPDATE_PROJECT_GROUP_INFO);
 
 		} catch (error) {
 			return super.createResponse(res, 500, error)
@@ -215,16 +215,16 @@ class ProjectController extends BaseController {
 			const groupInfo = await ProjectService.getGroupById(groupId);
 
 			if (!groupInfo) {
-				return super.createResponse(res, 404, RESPONSE_CODE.ERROR.NOT_FOUND.CODE);
+				return super.createResponse(res, 404, RESPONSE_CODE.PROJECT_GROUP_NOT_FOUND);
 			}
 
 			if (groupInfo.is_deleted === 1) {
-				return super.createResponse(res, 404, RESPONSE_CODE.ERROR.ALREADY_IN_SOFT_DELETE.CODE);
+				return super.createResponse(res, 404, RESPONSE_CODE.ALREADY_IN_SOFT_DELETE);
 			}
 
 			await ProjectService.softDeleteProjectGroup(groupId);
 
-			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS.SUCCESS_DELETE.CODE);
+			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS_DELETE_PROJECT_GROUP);
 		} catch (error) {
 			return super.createResponse(res, 500, error)
 		}
@@ -239,16 +239,16 @@ class ProjectController extends BaseController {
 			const groupInfo = await ProjectService.getGroupById(groupId);
 
 			if (!groupInfo) {
-				return super.createResponse(res, 404, RESPONSE_CODE.ERROR.NOT_FOUND.CODE);
+				return super.createResponse(res, 404, RESPONSE_CODE.PROJECT_GROUP_NOT_FOUND);
 			}
 
 			if (groupInfo.is_deleted === 0) {
-				return super.createResponse(res, 404, RESPONSE_CODE.ERROR.NOT_IN_SOFT_DELETE.CODE);
+				return super.createResponse(res, 404, RESPONSE_CODE.NOT_IN_SOFT_DELETE);
 			}
 
 			await ProjectService.recoverProjectGroup(groupId);
 
-			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS.SUCCESS_RECOVER.CODE);
+			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS_RECOVER_PROJECT_GROUP);
 
 		} catch (error) {
 			return super.createResponse(res, 500, error)
@@ -264,16 +264,16 @@ class ProjectController extends BaseController {
 			const groupInfo = await ProjectService.getGroupById(groupId);
 
 			if (!groupInfo) {
-				return super.createResponse(res, 404, RESPONSE_CODE.ERROR.NOT_FOUND.CODE);
+				return super.createResponse(res, 404, RESPONSE_CODE.PROJECT_GROUP_NOT_FOUND);
 			}
 
 			if (groupInfo.is_deleted === 0) {
-				return super.createResponse(res, 404, RESPONSE_CODE.ERROR.NOT_IN_SOFT_DELETE.CODE);
+				return super.createResponse(res, 404, RESPONSE_CODE.NOT_IN_SOFT_DELETE);
 			}
 
 			await ProjectService.permanentDeleteProjectGroup(groupId);
 
-			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS.SUCCESS_DELETE.CODE);
+			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS_DELETE_PROJECT_GROUP);
 
 		} catch (error) {
 			return super.createResponse(res, 500, error)

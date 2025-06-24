@@ -1,6 +1,7 @@
 const { Server } = require("socket.io");
 const SOCKET_EVENT_NAMES = require("../configs/socket-event-names");
 const GameCardService = require("../services/GameCardService");
+const { RESPONSE_CODE } = require("../constants/response-code");
 
 class SocketController {
 
@@ -31,7 +32,8 @@ class SocketController {
 
 			this.io.emit(SOCKET_EVENT_NAMES.GAME_CARD.CREATE_NEW_ROOM.SEND, {
 				newRoomId,
-				listRooms
+				listRooms,
+				responseCode: RESPONSE_CODE.SUCCESS_CREATE_GC_ROOM,
 			});
 
 		} catch (error) {
@@ -92,6 +94,7 @@ class SocketController {
 			this.io.to(roomId.toString()).emit(SOCKET_EVENT_NAMES.GAME_CARD.CREATE_RESULT.SEND, {
 				createdBy,
 				roomResults,
+				responseCode: RESPONSE_CODE.SUCCESS_CREATE_GC_MATCH_RESULT,
 			});
 		} catch (error) {
 			this.io.to(roomId.toString()).emit(SOCKET_EVENT_NAMES.GAME_CARD.CREATE_RESULT.ERROR, { error: error.message || "x" });
@@ -107,7 +110,8 @@ class SocketController {
 
 			this.io.to(roomId.toString()).emit(SOCKET_EVENT_NAMES.GAME_CARD.DELETE_MATCH_RESULT.SEND, {
 				deleteBy,
-				roomResults
+				roomResults,
+				responseCode: RESPONSE_CODE.SUCCESS_DELETE_MATCH_RESULT,
 			});
 		} catch (error) {
 			this.io.to(roomId.toString()).emit(SOCKET_EVENT_NAMES.GAME_CARD.DELETE_MATCH_RESULT.ERROR, { error: error.message });
@@ -122,7 +126,8 @@ class SocketController {
 
 			this.io.to(roomId.toString()).emit(SOCKET_EVENT_NAMES.GAME_CARD.UPDATE_ROOM_CONFIG.SEND, {
 				updatedBy,
-				roomDetails
+				roomDetails,
+				responseCode: RESPONSE_CODE.SUCCESS_UPDATE_GC_ROOM_CONFIG,
 			});
 
 		} catch (error) {
@@ -144,7 +149,8 @@ class SocketController {
 					});
 					this.io.to(roomId.toString()).emit(SOCKET_EVENT_NAMES.GAME_CARD.CLOSE_ROOM.SEND, {
 						closedBy,
-						roomDetails
+						roomDetails,
+						responseCode: RESPONSE_CODE.SUCCESS_CLOSE_GC_ROOM,
 					});
 				})
 
@@ -166,7 +172,8 @@ class SocketController {
 					});
 					this.io.to(roomId.toString()).emit(SOCKET_EVENT_NAMES.GAME_CARD.REOPEN_ROOM.SEND, {
 						reOpenBy,
-						roomDetails
+						roomDetails,
+						responseCode: RESPONSE_CODE.SUCCESS_REOPEN_GC_ROOM,
 					});
 				})
 
@@ -191,7 +198,7 @@ class SocketController {
 			socket.on(SOCKET_EVENT_NAMES.GAME_CARD.DELETE_MATCH_RESULT.RECEIVE, async (deleteData) => this.gcDeleteMatchResult(deleteData))
 
 			socket.on(SOCKET_EVENT_NAMES.GAME_CARD.CLOSE_ROOM.RECEIVE, async (closeData) => await this.gcCloseRoom(closeData))
-			
+
 			socket.on(SOCKET_EVENT_NAMES.GAME_CARD.REOPEN_ROOM.RECEIVE, async (reopenData) => await this.gcReOpenRoom(reopenData))
 
 			socket.on("disconnect", () => {

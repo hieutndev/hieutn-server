@@ -13,7 +13,7 @@ class CertificationController extends BaseController {
 
 			const listCerts = await CertificationService.getAllCerts();
 
-			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS.SUCCESS_GET_ALL.CODE, listCerts);
+			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS_GET_ALL_CERTS, listCerts);
 
 		} catch (error) {
 			return super.createResponse(res, 500, error)
@@ -27,7 +27,7 @@ class CertificationController extends BaseController {
 			const { title, issued_by, issued_date } = req.body;
 
 			if (!req.file) {
-				return super.createResponse(res, 404, RESPONSE_CODE.ERROR.MISSING_IMAGE.CODE)
+				return super.createResponse(res, 404, RESPONSE_CODE.MISS_CERT_IMAGE)
 			}
 
 			const imageName = `cert_${generateUniqueString()}`;
@@ -37,7 +37,7 @@ class CertificationController extends BaseController {
 				CertificationService.createNewCert(title, issued_by, issued_date, imageName)
 			])
 
-			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS.SUCCESS_CREATE.CODE, {
+			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS_ADD_CERT, {
 				newCertId
 			})
 		} catch (error) {
@@ -52,10 +52,10 @@ class CertificationController extends BaseController {
 			const certInfo = await CertificationService.getCertInfoById(certId, true);
 
 			if (!certInfo) {
-				return super.createResponse(res, 404, RESPONSE_CODE.ERROR.NOT_FOUND.CODE);
+				return super.createResponse(res, 404, RESPONSE_CODE.CERT_NOT_FOUND);
 			}
 
-			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS.SUCCESS_GET_ONE.CODE, certInfo);
+			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS_GET_CERT_INFO, certInfo);
 
 		} catch (error) {
 			return super.createResponse(res, 500, error)
@@ -72,7 +72,7 @@ class CertificationController extends BaseController {
 			const certInfo = await CertificationService.getCertInfoById(certId, false);
 
 			if (!certInfo) {
-				return super.createResponse(res, 404, RESPONSE_CODE.ERROR.NOT_FOUND.CODE);
+				return super.createResponse(res, 404, RESPONSE_CODE.CERT_NOT_FOUND);
 			}
 
 			await Promise.all([
@@ -80,7 +80,7 @@ class CertificationController extends BaseController {
 				CertificationService.updateCertInfo(certId, title, issued_by, issued_date)
 			])
 
-			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS.SUCCESS_UPDATE.CODE);
+			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS_UPDATE_CERT_INFO);
 
 		} catch (error) {
 			return super.createResponse(res, 500, error)
@@ -96,16 +96,16 @@ class CertificationController extends BaseController {
 			const certInfo = await CertificationService.getCertInfoById(certId);
 
 			if (!certInfo) {
-				return super.createResponse(res, 404, RESPONSE_CODE.ERROR.NOT_FOUND.CODE);
+				return super.createResponse(res, 404, RESPONSE_CODE.CERT_NOT_FOUND);
 			}
 
 			if (certInfo.is_deleted === 1) {
-				return super.createResponse(res, 404, RESPONSE_CODE.ERROR.ALREADY_IN_SOFT_DELETE.CODE);
+				return super.createResponse(res, 404, RESPONSE_CODE.ALREADY_IN_SOFT_DELETE);
 			}
 
 			await CertificationService.softDeleteCert(certId);
 
-			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS.SUCCESS_DELETE.CODE);
+			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS_DELETE_CERT);
 
 		} catch (error) {
 			return super.createResponse(res, 500, error)
@@ -120,16 +120,16 @@ class CertificationController extends BaseController {
 			const certInfo = await CertificationService.getCertInfoById(certId);
 
 			if (!certInfo) {
-				return super.createResponse(res, 404, RESPONSE_CODE.ERROR.NOT_FOUND.CODE);
+				return super.createResponse(res, 404, RESPONSE_CODE.CERT_NOT_FOUND);
 			}
 
 			if (certInfo.is_deleted === 0) {
-				return super.createResponse(res, 404, RESPONSE_CODE.ERROR.NOT_IN_SOFT_DELETE.CODE);
+				return super.createResponse(res, 404, RESPONSE_CODE.NOT_IN_SOFT_DELETE);
 			}
 
 			await CertificationService.recoverCert(certId)
 
-			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS.SUCCESS_RECOVER.CODE);
+			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS_RECOVER_CERT);
 
 
 		} catch (error) {
@@ -145,16 +145,16 @@ class CertificationController extends BaseController {
 			const certInfo = await CertificationService.getCertInfoById(certId);
 
 			if (!certInfo) {
-				return super.createResponse(res, 404, RESPONSE_CODE.ERROR.NOT_FOUND.CODE);
+				return super.createResponse(res, 404, RESPONSE_CODE.CERT_NOT_FOUND);
 			}
 
 			if (certInfo.is_deleted === 0) {
-				return super.createResponse(res, 404, RESPONSE_CODE.ERROR.ALREADY_IN_SOFT_DELETE.CODE);
+				return super.createResponse(res, 404, RESPONSE_CODE.ALREADY_IN_SOFT_DELETE);
 			}
 
 			await CertificationService.permanentDeleteCert(certId);
 
-			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS.SUCCESS_DELETE.CODE)
+			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS_DELETE_CERT)
 
 		} catch (error) {
 			return super.createResponse(res, 500, error)

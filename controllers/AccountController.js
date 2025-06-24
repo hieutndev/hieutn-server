@@ -14,31 +14,31 @@ class AccountController extends BaseController {
 	async signUp(req, res, next) {
 		try {
 
-			const { email, username, password, confirmPassword, role } = req.body;
+			const { email, username, password, confirm_password, role } = req.body;
 
-			if (password !== confirmPassword) {
-				return super.createResponse(res, 404, RESPONSE_CODE.ERROR.NOT_MATCH.CODE);
+			if (password !== confirm_password) {
+				return super.createResponse(res, 404, RESPONSE_CODE.PASSWORD_NOT_MATCH);
 			}
 
 			if (!REGEX.PASSWORD.test(password)) {
-				return super.createResponse(res, 404, RESPONSE_CODE.ERROR.PASSWORD_NOT_STRONG_ENOUGH.CODE);
+				return super.createResponse(res, 404, RESPONSE_CODE.PASSWORD_NOT_STRONG_ENOUGH);
 			}
 
 			if (username) {
 				if (await AccountService.isAccountExist(username, "username")) {
-					return super.createResponse(res, 404, RESPONSE_CODE.ERROR.USERNAME_ALREADY_EXIST.CODE);
+					return super.createResponse(res, 404, RESPONSE_CODE.USERNAME_ALREADY_EXIST);
 				}
 			}
 
 			if (email) {
 				if (await AccountService.isAccountExist(email, "email")) {
-					return super.createResponse(res, 404, RESPONSE_CODE.ERROR.EMAIL_ALREADY_EXIST.CODE);
+					return super.createResponse(res, 404, RESPONSE_CODE.EMAIL_ALREADY_EXIST);
 				}
 			}
 
 			await AccountService.signUp(username, email, password);
 
-			return super.createResponse(res, 201, RESPONSE_CODE.SUCCESS.SUCCESS_CREATE.CODE)
+			return super.createResponse(res, 201, RESPONSE_CODE.SUCCESS_SIGN_UP)
 
 		} catch (error) {
 			return super.createResponse(res, 500, error)
@@ -59,11 +59,11 @@ class AccountController extends BaseController {
 			}
 
 			if (!accountInfo) {
-				return super.createResponse(res, 404, username ? RESPONSE_CODE.ERROR.USERNAME_NOT_FOUND.CODE : RESPONSE_CODE.ERROR.EMAIL_NOT_FOUND.CODE)
+				return super.createResponse(res, 404, username ? RESPONSE_CODE.USERNAME_NOT_FOUND : RESPONSE_CODE.EMAIL_NOT_FOUND)
 			}
 
 			if (!await AccountService.comparePassword(password, accountInfo.password)) {
-				return super.createResponse(res, 404, RESPONSE_CODE.ERROR.WRONG_PASSWORD.CODE)
+				return super.createResponse(res, 404, RESPONSE_CODE.WRONG_PASSWORD)
 			}
 
 			const refreshToken = await generateRefreshToken(accountInfo.user_id);
@@ -74,7 +74,7 @@ class AccountController extends BaseController {
 
 			await AccountService.updateAccountRefreshToken(accountInfo.user_id, refreshToken);
 
-			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS.SUCCESS_SIGN_IN.CODE, {
+			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS_SIGN_IN, {
 				access_token: accessToken,
 				refresh_token: refreshToken,
 				user_id: accountInfo.user_id,
@@ -89,33 +89,24 @@ class AccountController extends BaseController {
 
 	async getNewAccessToken(req, res, next) {
 		try {
-			// const {
-			// 	isCompleted,
-			// 	message,
-			// 	results
-			// } = await AccountService.getNewAccessToken(req.user_id, req.refresh_token);
-			//
-			// if (!isCompleted) {
-			// 	return super.createResponse(res, 400, message)
-			// }
-			//
-			// return super.createResponse(res, 200, message, results)
 
 			const accountInfo = await AccountService.isAccountExist(req.user_id, "id");
 
 			if (!accountInfo) {
-				return super.createResponse(res, 404, RESPONSE_CODE.ERROR.USER_ID_NOT_FOUND.CODE)
+				return super.createResponse(res, 404, RESPONSE_CODE.USER_ID_NOT_FOUND)
 			}
 
 			if (accountInfo.refresh_token !== req.refresh_token) {
-				return super.createResponse(res, 404, RESPONSE_CODE.ERROR.WRONG_REFRESH_TOKEN.CODE)
+				return super.createResponse(res, 404, RESPONSE_CODE.WRONG_REFRESH_TOKEN)
 			}
 
-			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS.SUCCESS_GET_NEW_ACCESS_TOKEN.CODE, {
+			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS_GET_NEW_ACCESS_TOKEN, {
 				access_token: await generateAccessToken({
 					user_id: accountInfo.user_id,
-					role: accountInfo.role
-				})
+					role: accountInfo.role,
+				}),
+				username: accountInfo.username,
+				user_id: accountInfo.user_id,
 			})
 
 		} catch (error) {
@@ -128,7 +119,7 @@ class AccountController extends BaseController {
 
 			const listAccounts = await AccountService.getAllAccounts();
 
-			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS.SUCCESS_GET_ALL.CODE, listAccounts)
+			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS_GET_ALL_ACCOUNTS, listAccounts)
 
 		} catch (error) {
 			return super.createResponse(res, 500, error)
@@ -143,21 +134,21 @@ class AccountController extends BaseController {
 			const { action } = req.body
 
 			if (!["block", "unblock"].includes(action)) {
-				return super.createResponse(res, 404, RESPONSE_CODE.ERROR.INVALID_FIELD_VALUE.CODE)
+				return super.createResponse(res, 404, RESPONSE_CODE.INVALID_UPDATE_ACTIVE_STATUS_ACTION)
 			}
 
 			const accountInfo = await AccountService.isAccountExist(accountId, "id");
 
 			if (!accountInfo) {
-				return super.createResponse(res, 404, RESPONSE_CODE.ERROR.USER_ID_NOT_FOUND.CODE)
+				return super.createResponse(res, 404, RESPONSE_CODE.USER_ID_NOT_FOUND)
 			}
 
 			if (action === "block" && accountInfo.is_active === 0) {
-				return super.createResponse(res, 404, RESPONSE_CODE.ERROR.ALREADY_BLOCKED.CODE)
+				return super.createResponse(res, 404, RESPONSE_CODE.ACCOUNT_ALREADY_BLOCKED)
 			}
 
 			if (action === "unblock" && accountInfo.is_active === 1) {
-				return super.createResponse(res, 404, RESPONSE_CODE.ERROR.ACCOUNT_NOT_BLOCKED.CODE)
+				return super.createResponse(res, 404, RESPONSE_CODE.ACCOUNT_NOT_BLOCKED)
 			}
 
 			if (action === "block") {
@@ -166,7 +157,7 @@ class AccountController extends BaseController {
 				await AccountService.unBlockAccount(accountId)
 			}
 
-			return super.createResponse(res, 200, action === "block" ? RESPONSE_CODE.SUCCESS.SUCCESS_BLOCK.CODE : RESPONSE_CODE.SUCCESS.SUCCESS_UNBLOCK.CODE)
+			return super.createResponse(res, 200, action === "block" ? RESPONSE_CODE.SUCCESS_BLOCK_ACCOUNT : RESPONSE_CODE.SUCCESS_UNBLOCK_ACCOUNT)
 
 		} catch (error) {
 			return super.createResponse(res, 500, error)
@@ -180,7 +171,7 @@ class AccountController extends BaseController {
 
 			const accountInfo = await AccountService.isAccountExist(email, "email");
 
-			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS.VALID_EMAIL.CODE, {
+			return super.createResponse(res, 200, RESPONSE_CODE.EMAIL_VALID, {
 				isValid: !!accountInfo,
 				emailInfo: accountInfo ? {
 					email,

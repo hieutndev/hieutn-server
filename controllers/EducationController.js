@@ -13,7 +13,7 @@ class EducationController extends BaseController {
 
 			const listEdu = await EducationService.getAllEducation();
 
-			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS.SUCCESS_GET_ALL, listEdu)
+			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS_GET_ALL_EDU, listEdu)
 
 		} catch (error) {
 			return super.createResponse(res, 500, error)
@@ -28,10 +28,10 @@ class EducationController extends BaseController {
 			const educationInfo = await EducationService.getEducationById(educationId);
 
 			if (!educationInfo) {
-				return super.createResponse(res, 404, RESPONSE_CODE.ERROR.NOT_FOUND.CODE);
+				return super.createResponse(res, 404, RESPONSE_CODE.EDU_NOT_FOUND);
 			}
 
-			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS.SUCCESS_GET_ONE.CODE, educationInfo)
+			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS_GET_EDU_INFO, educationInfo)
 
 		} catch (error) {
 			return super.createResponse(res, 500, error)
@@ -44,7 +44,7 @@ class EducationController extends BaseController {
 
 			const newEduId = await EducationService.addNewEducation(title, organization, time_start, time_end);
 
-			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS.SUCCESS_CREATE, {
+			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS_ADD_EDU, {
 				newEduId
 			})
 		} catch (error) {
@@ -62,12 +62,12 @@ class EducationController extends BaseController {
 			const eduInfo = await EducationService.getEducationById(educationId);
 
 			if (!eduInfo) {
-				return super.createResponse(res, 404, RESPONSE_CODE.ERROR.NOT_FOUND.CODE);
+				return super.createResponse(res, 404, RESPONSE_CODE.EDU_NOT_FOUND);
 			}
 
 			await EducationService.updateEducationDetails(educationId, title, organization, time_start, time_end);
 
-			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS.SUCCESS_UPDATE.CODE)
+			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS_UPDATE_EDU_INFO)
 
 		} catch (error) {
 			return super.createResponse(res, 500, error)
@@ -82,16 +82,16 @@ class EducationController extends BaseController {
 			const eduInfo = await EducationService.getEducationById(educationId);
 
 			if (!eduInfo) {
-				return super.createResponse(res, 404, RESPONSE_CODE.ERROR.NOT_FOUND.CODE);
+				return super.createResponse(res, 404, RESPONSE_CODE.EDU_NOT_FOUND);
 			}
 
 			if (eduInfo.is_deleted === 1) {
-				return super.createResponse(res, 404, RESPONSE_CODE.ERROR.ALREADY_IN_SOFT_DELETE.CODE)
+				return super.createResponse(res, 404, RESPONSE_CODE.ALREADY_IN_SOFT_DELETE)
 			}
 
 			await EducationService.softDeleteEducation(educationId);
 
-			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS.SUCCESS_DELETE.CODE)
+			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS_DELETE_EDU)
 
 		} catch (error) {
 			return super.createResponse(res, 500, error)
@@ -106,16 +106,16 @@ class EducationController extends BaseController {
 			const eduInfo = await EducationService.getEducationById(educationId);
 
 			if (!eduInfo) {
-				return super.createResponse(res, 404, RESPONSE_CODE.ERROR.NOT_FOUND.CODE);
+				return super.createResponse(res, 404, RESPONSE_CODE.EDU_NOT_FOUND);
 			}
 
 			if (eduInfo.is_deleted === 0) {
-				return super.createResponse(res, 404, RESPONSE_CODE.ERROR.NOT_IN_SOFT_DELETE.CODE)
+				return super.createResponse(res, 404, RESPONSE_CODE.NOT_IN_SOFT_DELETE)
 			}
 
 			await EducationService.permanentDeleteEducation(educationId);
 
-			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS.SUCCESS_DELETE.CODE)
+			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS_DELETE_EDU)
 
 
 		} catch (error) {
@@ -131,16 +131,16 @@ class EducationController extends BaseController {
 			const eduInfo = await EducationService.getEducationById(educationId);
 
 			if (!eduInfo) {
-				return super.createResponse(res, 404, RESPONSE_CODE.ERROR.NOT_FOUND.CODE);
+				return super.createResponse(res, 404, RESPONSE_CODE.EDU_NOT_FOUND);
 			}
 
 			if (eduInfo.is_deleted === 0) {
-				return super.createResponse(res, 404, RESPONSE_CODE.ERROR.NOT_IN_SOFT_DELETE.CODE)
+				return super.createResponse(res, 404, RESPONSE_CODE.NOT_IN_SOFT_DELETE)
 			}
 
 			await EducationService.recoverEducation(educationId);
 
-			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS.SUCCESS_RECOVER.CODE)
+			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS_RECOVER_EDU)
 
 		} catch (error) {
 			return super.createResponse(res, 500, error)
