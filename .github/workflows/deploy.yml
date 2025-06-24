@@ -69,7 +69,7 @@ jobs:
                       npm install --legacy-peer-deps
 
                       # Start the application
-                      pm2 start --name hieutn-server "npm start"
+                      pm2 start --name hieutn-server "NODE_OPTIONS=\"--max-old-space-size=4096\" npm start"
                       pm2 save
 
             - name: Update deployment Status (success)
