@@ -4,229 +4,122 @@ const { appSQL } = require("../utils/sql-query-string");
 const randomUniqueString = require("../utils/generate-unique-string")
 
 const s3 = require("../configs/s3-bucket");
+const { RESPONSE_CODE } = require('../constants/response-code');
+const { is } = require('express/lib/request');
 
 class AppService extends BaseService {
 	constructor() {
 		super();
 	}
 
-	async getAllApps(filter = "all") {
-		try {
-
-			const listApps = await super.query(appSQL.getAllApps);
-
-			if (!listApps.isCompleted) {
-				return {
-					isCompleted: false,
-					message: listApps.message,
-				}
-			}
-
-			let finalResult = listApps.results;
-
-
-			if (filter === "onlyShow") {
-				finalResult = listApps.results.filter((app) => app.is_hide === 0);
-			} else if (filter === "onlyHide") {
-				finalResult = listApps.results.filter((app) => app.is_hide === 1);
-			}
-
-			const mapAppIcon = await Promise.all(finalResult.map(async (app) => {
-				app.app_icon = await s3.getObject(app.app_icon);
-				return app
-			}))
-
-			return {
-				isCompleted: true,
-				message: Message.successGetAll("apps"),
-				results: mapAppIcon,
-
-			}
-
-
-		} catch (error) {
-			return {
-				isCompleted: false,
-				message: error,
-			}
-		}
+	async uploadAppIcon(imageFile, appIconName) {
+		return super.s3Upload(imageFile, {
+			imageName: appIconName,
+			fit: 'cover',
+			isResize: true,
+			width: 1000,
+			height: 1000,
+		});
 	}
 
-	async getAppDetails(appId) {
-		try {
+	async getAllApps(filter = "all", isGetIconUrl = false) {
 
-			const appDetails = await super.query(appSQL.getAppInformation, [appId]);
+		const { isCompleted, message, results } = await super.query(appSQL.getAllApps);
 
-			if (!appDetails.isCompleted) {
-				return {
-					isCompleted: false,
-					message: appDetails.message,
-				}
-			}
-
-			return {
-				isCompleted: true,
-				message: Message.successGetOne("app"),
-				results: {
-					...appDetails.results[0],
-					app_icon: await s3.getObject(appDetails.results[0].app_icon),
-					app_icon_name: appDetails.results[0].app_icon,
-				}
-			}
-
-		} catch (error) {
-			return {
-				isCompleted: false,
-				message: error,
-			}
+		if (!isCompleted) {
+			throw message
 		}
+
+		let listApps = results;
+
+
+		if (filter === "onlyShow") {
+			listApps = results.filter((app) => app.is_hide === 0);
+		} else if (filter === "onlyHide") {
+			listApps = results.filter((app) => app.is_hide === 1);
+		}
+
+		return await Promise.all(listApps.map(async (app) => {
+			app.app_icon = isGetIconUrl ? await s3.getObject(app.app_icon) : app.app_icon;
+			app.app_icon_name = app.app_icon;
+			return app
+		}))
+
 	}
 
-	async addNewApp({ app_name, app_link }, appIcon) {
-		try {
+	async getAppById(appId, isParseIconUrl = false) {
+		const appInfo = await super.query(appSQL.getAppInformation, [appId]);
 
-			const appIconName = randomUniqueString();
-
-			const addNewAppStatus = await super.query(appSQL.addNewApp, [app_name, appIconName, app_link]);
-
-			if (!addNewAppStatus.isCompleted) {
-				return {
-					isCompleted: false,
-					message: addNewAppStatus.message,
-				}
-			}
-
-			await s3.putObject(appIconName, appIcon);
-
-			return {
-				isCompleted: true,
-				message: Message.successCreate("app")
-			}
-
-		} catch (error) {
-			return {
-				isCompleted: false,
-				message: error,
-			}
+		if (!appInfo.isCompleted) {
+			throw new Error(appInfo.message);
 		}
+
+		if (appInfo.results.length === 0) {
+			return false;
+		}
+
+		return {
+			...appInfo.results[0],
+			app_icon_name: appInfo.results[0].app_icon,
+			app_icon: isParseIconUrl ? await s3.getObject(appInfo.results[0].app_icon) : appInfo.results[0].app_icon,
+		}
+
 	}
 
-	async updateAppIcon(appId, appIcon) {
-		try {
+	async createNewApp(appName, appLink, appIconName) {
 
-			const appDetails = await this.getAppDetails(appId);
+		const { isCompleted, message, results } = await super.query(appSQL.addNewApp, [appName, appIconName, appLink])
 
-			if (!appDetails.isCompleted) {
-				return {
-					isCompleted: false,
-					message: appDetails.message,
-				}
-			}
+		if (!isCompleted) {
+			await super.s3Delete(appIconName);
 
-			await s3.putObject(appDetails.results.app_icon_name, appIcon);
-
-			return {
-				isCompleted: true,
-			}
-
-		} catch (error) {
-			return {
-				isCompleted: false,
-				message: error,
-			}
+			throw message;
 		}
+
+		return results.insertId;
+
 	}
 
-	async updateAppInformation(appId, { app_name, app_link, is_change_icon }, appIcon) {
-		try {
+	async updateAppInfo(appId, appName, appLink) {
+		const {
+			isCompleted,
+			message,
+			results
+		} = await super.query(appSQL.updateAppInformation, [appName, appLink, appId]);
 
-			const updateNewAppDetails = await super.query(appSQL.updateAppInformation, [app_name, app_link, appId]);
 
-			if (!updateNewAppDetails.isCompleted) {
-				return {
-					isCompleted: false,
-					message: updateNewAppDetails.message,
-				}
-			}
-
-			if (is_change_icon === "true") {
-				const updateIcon = await this.updateAppIcon(appId, appIcon);
-
-				if (!updateIcon.isCompleted) {
-					return {
-						isCompleted: false,
-						message: updateIcon.message,
-					}
-				}
-			}
-
-			return {
-				isCompleted: true,
-				message: Message.successUpdate("app")
-			}
-
-		} catch (error) {
-			return {
-				isCompleted: false,
-				message: error,
-			}
+		if (!isCompleted) {
+			throw message
 		}
+
+		return true;
+
 	}
 
-	async updateAppDisplayStatus(appId, { new_status }) {
-		try {
+	async updateAppDisplayStatus(appId, newStatus) {
+		const { isCompleted, message } = await super.query(appSQL.updateAppDisplayStatus, [newStatus, appId])
 
-			const updateDisplayStatus = await super.query(appSQL.updateAppDisplayStatus, [new_status, appId])
-			return {
-				isCompleted: updateDisplayStatus.isCompleted,
-				message: updateDisplayStatus.isCompleted ? Message.successUpdate("app") : updateDisplayStatus.message,
-			}
-		} catch (error) {
-			return {
-				isCompleted: false,
-				message: error,
-			}
+		if (!isCompleted) {
+			throw message
 		}
+
+		return true;
 	}
 
-	async deleteApp(appId) {
-		try {
+	async deleteApp(appId, appIconName) {
 
-			const appDetails = await this.getAppDetails(appId);
+		const [, { isCompleted, message }] = await Promise.all([
+			appIconName && super.s3Delete(appIconName),
+			super.query(appSQL.deleteApp, [appId])
+		])
 
-			if (!appDetails.isCompleted) {
-				return {
-					isCompleted: false,
-					message: appDetails.message
-				}
-			}
-
-			const [s3R, deleteApp] = await Promise.all([
-				s3.deleteObject(appDetails.results.app_icon_name),
-				super.query(appSQL.deleteApp, [appId])
-			])
-
-			if (!deleteApp.isCompleted) {
-				return {
-					isCompleted: false,
-					message: deleteApp.message
-				}
-			}
-
-			return {
-				isCompleted: true,
-				message: Message.successDelete("app")
-			}
-
-
-		} catch (error) {
-			return {
-				isCompleted: false,
-				message: error,
-			}
+		if (!isCompleted) {
+			throw message;
 		}
+
+		return true;
 	}
-	
+
 }
 
 module.exports = new AppService()

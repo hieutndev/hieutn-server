@@ -14,6 +14,7 @@ const ResponseMessage = {
 	signUpSuccess: "Account created successfully",
 	emailNotFound: "No account found with the email provided",
 	userIdNotFound: "No account found with the user_id provided",
+	usernameNotFound: "No account found with the username provided",
 	wrongRefreshToken: "The refresh token you provided doesn't match the refresh token on the server.",
 	successGetNewAccessToken: `Successfully generated new access token`,
 	passwordNotMatch: "Wrong password",

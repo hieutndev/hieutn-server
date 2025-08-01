@@ -2,6 +2,7 @@ const BaseService = require("./BaseService");
 const Message = require("../utils/response-message");
 
 const { educationSQL } = require("../utils/sql-query-string")
+const { RESPONSE_CODE } = require("../constants/response-code");
 
 class EducationService extends BaseService {
 	constructor() {
@@ -10,233 +11,101 @@ class EducationService extends BaseService {
 	}
 
 	async getAllEducation() {
-		try {
 
-			const listEducation = await super.query(educationSQL.getAllEducations)
+		const { isCompleted, message, results } = await super.query(educationSQL.getAllEducations)
 
-			if (!listEducation.isCompleted) {
-				return {
-					isCompleted: false,
-					message: listEducation.message,
-				}
-			}
-
-			return {
-				isCompleted: true,
-				message: Message.successGetAll("education"),
-				results: listEducation.results,
-			}
-
-
-		} catch (error) {
-			return {
-				isCompleted: false,
-				message: error,
-			}
+		if (!isCompleted) {
+			throw message
 		}
+
+		return results
 	}
 
-	async getEducationDetails(educationId) {
-		try {
+	async getEducationById(educationId) {
+		const { isCompleted, message, results } = await super.query(educationSQL.getEducationDetails, [educationId]);
 
-			const getEducationDetails = await super.query(educationSQL.getEducationDetails, [educationId]);
-
-			if (!getEducationDetails.isCompleted) {
-				return {
-					isCompleted: false,
-					message: getEducationDetails.message
-				}
-			}
-
-			return {
-				isCompleted: true,
-				message: Message.successGetOne("education"),
-				results: getEducationDetails.results[0]
-			}
-
-		} catch (error) {
-			return {
-				isCompleted: false,
-				message: error,
-			}
+		if (!isCompleted) {
+			throw message;
 		}
+
+		if (results.length === 0) {
+			return false;
+		}
+
+		return results[0];
 	}
 
-	async addNewEducation({ title, organization, time_start, time_end }) {
-		try {
-			const addNewEducationStatus = await super.query(educationSQL.addNewEducation, [title, organization, time_start, time_end]);
+	async addNewEducation(title, organization, timeStart, timeEnd) {
 
-			if (!addNewEducationStatus.isCompleted) {
-				return {
-					isCompleted: false,
-					message: addNewEducationStatus.message,
-				}
-			}
+		const {
+			isCompleted,
+			message,
+			results
+		} = await super.query(educationSQL.addNewEducation, [title, organization, timeStart, timeEnd]);
 
-			return {
-				isCompleted: true,
-				message: Message.successCreate("education"),
-				results: {
-					newEducationId: addNewEducationStatus.results.insertId
-				}
-			}
-		} catch (error) {
-			return {
-				isCompleted: false,
-				message: error,
-			}
+		if (!isCompleted) {
+			throw message;
 		}
+
+		return results.insertId
+
 	}
 
-	async updateEducationDetails(educationId, { title, organization, time_start, time_end }) {
-		try {
-
-			const updateStatus = await super.query(educationSQL.updateEducationDetails, [title, organization, time_start, time_end, educationId]);
-
-			if (!updateStatus.isCompleted) {
-				return ({
-					isCompleted: false,
-					message: updateStatus.message,
-				})
-			}
-
-			return ({
-				isCompleted: true,
-				message: Message.successUpdate("education"),
-			})
+	async updateEducationDetails(eduId, title, organization, timeStart, timeEnd) {
 
 
-		} catch (error) {
-			return {
-				isCompleted: false,
-				message: error,
-			}
+		const {
+			isCompleted,
+			message
+		} = await super.query(educationSQL.updateEducationDetails, [title, organization, timeStart, timeEnd, eduId]);
+
+		if (!isCompleted) {
+			throw message;
 		}
+
+		return true;
+
+
 	}
 
 	async softDeleteEducation(educationId) {
-		try {
 
-			const educationDetails = await this.getEducationDetails(educationId);
+		const { isCompleted, message } = await super.query(educationSQL.softDeleteEducation, [educationId]);
 
-			if (!educationDetails.isCompleted) {
-				return {
-					isCompleted: false,
-					message: educationDetails.message,
-				}
-			}
-
-			if (educationDetails.results.is_deleted) {
-				return {
-					isCompleted: false,
-					message: Message.alreadyInSoftDelete("This education information"),
-				}
-			}
-
-			const softDeleteStatus = await super.query(educationSQL.softDeleteEducation, [educationId]);
-
-			if (!softDeleteStatus.isCompleted) {
-				return {
-					isCompleted: false,
-					message: softDeleteStatus.message,
-				}
-			}
-
-			return {
-				isCompleted: true,
-				message: Message.successDelete("Education information"),
-			}
-
-		} catch (error) {
-			return {
-				isCompleted: false,
-				message: error,
-			}
+		if (!isCompleted) {
+			throw message;
 		}
+
+		return true
+
+
 	}
 
 	async permanentDeleteEducation(educationId) {
-		try {
 
-			const educationDetails = await this.getEducationDetails(educationId);
+		const { isCompleted, message } = await super.query(educationSQL.permanentDeleteEducation, [educationId]);
 
-			if (!educationDetails.isCompleted) {
-				return {
-					isCompleted: false,
-					message: educationDetails.message,
-				}
-			}
-
-			if (!educationDetails.results.is_deleted) {
-				return {
-					isCompleted: false,
-					message: Message.notInSoftDelete("This education information"),
-				}
-			}
-
-			const deleteStatus = await super.query(educationSQL.permanentDeleteEducation, [educationId]);
-
-			if (!deleteStatus.isCompleted) {
-				return {
-					isCompleted: false,
-					message: deleteStatus.message,
-				}
-			}
-
-			return {
-				isCompleted: true,
-				message: Message.successDelete("Education information"),
-			}
-
-		} catch (error) {
-			return {
-				isCompleted: false,
-				message: error,
-			}
+		if (!isCompleted) {
+			throw message
 		}
+
+		return true
+
 	}
 
 	async recoverEducation(educationId) {
-		try {
 
-			const educationDetails = await this.getEducationDetails(educationId);
+		const { isCompleted, message } = await super.query(educationSQL.recoverEducation, [educationId]);
 
-			if (!educationDetails.isCompleted) {
-				return {
-					isCompleted: false,
-					message: educationDetails.message,
-				}
-			}
-
-			if (!educationDetails.results.is_deleted) {
-				return {
-					isCompleted: false,
-					message: Message.notInSoftDelete("This education information"),
-				}
-			}
-
-			const recoverStatus = await super.query(educationSQL.recoverEducation, [educationId]);
-
-			if (!recoverStatus.isCompleted) {
-				return {
-					isCompleted: false,
-					message: recoverStatus.message,
-				}
-			}
-
-			return {
-				isCompleted: true,
-				message: Message.successUpdate("Education information")
-			}
-
-		} catch (error) {
-			return {
-				isCompleted: false,
-				message: error,
-			}
+		if (!isCompleted) {
+			throw message
 		}
+
+		return true
+
+
 	}
-	
+
 }
 
 module.exports = new EducationService();

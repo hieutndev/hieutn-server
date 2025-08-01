@@ -13,12 +13,28 @@ async function refreshTokenChecker(req, res, next) {
 		});
 	}
 
-	const { user_id } = await verifyToken(token);
+	try {
+		const { user_id } = await verifyToken(token);
 
-	req.user_id = user_id;
-	req.refresh_token = token;
+		req.user_id = user_id;
+		req.refresh_token = token;
 
-	return next();
+		return next();
+	} catch (error) {
+		if (error.name === "TokenExpiredError") {
+			return res.status(401).json({
+				status: "failure",
+				message: "Token Expired"
+			});
+		}
+
+		console.log(error)
+
+		return res.status(500).json({
+			status: "error",
+			message: error
+		})
+	}
 }
 
 async function accessTokenChecker(req, res, next) {

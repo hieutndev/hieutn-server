@@ -1,6 +1,7 @@
 const BaseController = require("./BaseController")
 const AppService = require("../services/AppService")
-
+const { RESPONSE_CODE } = require("../constants/response-code");
+const generateUniqueString = require("../utils/generate-unique-string")
 
 class AppController extends BaseController {
 	constructor() {
@@ -11,15 +12,15 @@ class AppController extends BaseController {
 		try {
 			const { filter } = req.query;
 
-			const { isCompleted, message, results } = await AppService.getAllApps(filter);
+			const validFilter = ["all", "onlyShow", "onlyHide"];
 
-
-			if (!isCompleted) {
-				return super.createResponse(res, 400, message)
+			if (filter && !validFilter.includes(filter)) {
+				return super.createResponse(res, 404, RESPONSE_CODE.INVALID_FILTER_APP);
 			}
 
-			return super.createResponse(res, 200, message, results)
+			const listApps = await AppService.getAllApps(filter ?? "all");
 
+			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS_GET_ALL_APPS, listApps)
 
 		} catch (error) {
 			return super.createResponse(res, 500, error)
@@ -31,13 +32,14 @@ class AppController extends BaseController {
 
 			const { appId } = req.params;
 
-			const { isCompleted, message, results } = await AppService.getAppDetails(appId);
+			const appInfo = await AppService.getAppById(appId, true);
 
-			if (!isCompleted) {
-				return super.createResponse(res, 400, message)
+			if (!appInfo) {
+				return super.createResponse(res, 404, RESPONSE_CODE.APP_NOT_FOUND)
 			}
 
-			return super.createResponse(res, 200, message, results)
+			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS_GET_APP_INFO, appInfo)
+
 		} catch (error) {
 			return super.createResponse(res, 500, error)
 		}
@@ -46,37 +48,46 @@ class AppController extends BaseController {
 	async addNewApp(req, res, next) {
 		try {
 
-			const { isCompleted, message } = await AppService.addNewApp(req.body, req.file)
+			const { app_name, app_link } = req.body;
 
-			if (!isCompleted) {
-				return next({
-					status: 400,
-					message,
-				})
+
+			let appIconName = null;
+			if (req.file) {
+				appIconName = `app_${generateUniqueString()}`;
+
+				await AppService.uploadAppIcon(req.file, appIconName)
 			}
 
-			return super.createResponse(res, 200, message)
+			const newAppId = await AppService.createNewApp(app_name, app_link, appIconName)
+
+			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS_ADD_APP, {
+				newAppId
+			})
 
 		} catch (error) {
 			return super.createResponse(res, 500, error)
 		}
 	}
 
-	async updateAppInformation(req, res, next) {
+	async updateAppInfo(req, res, next) {
 		try {
 
 			const { appId } = req.params
 
-			const { isCompleted, message } = await AppService.updateAppInformation(appId, req.body, req.file);
+			const { app_name, app_link } = req.body;
 
-			if (!isCompleted) {
-				return next({
-					isCompleted: false,
-					message: message
-				})
+			const appInfo = await AppService.getAppById(appId);
+
+			if (!appInfo) {
+				return super.createResponse(res, 404, RESPONSE_CODE.APP_NOT_FOUND)
 			}
 
-			return super.createResponse(res, 200, message)
+			await Promise.all([
+				req.file && AppService.uploadAppIcon(req.file, appInfo.app_icon_name),
+				AppService.updateAppInfo(appId, app_name, app_link),
+			]);
+
+			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS_UPDATE_APP_INFO)
 
 		} catch (error) {
 			return super.createResponse(res, 500, error)
@@ -86,15 +97,11 @@ class AppController extends BaseController {
 	async updateAppDisplayStatus(req, res, next) {
 		try {
 
-			const { appId } = req.params;
+			const { new_status, app_id } = req.body;
 
-			const { isCompleted, message } = await AppService.updateAppDisplayStatus(appId, req.body)
+			await AppService.updateAppDisplayStatus(app_id, new_status)
 
-			if (!isCompleted) {
-				return super.createResponse(res, 400, message)
-			}
-
-			return super.createResponse(res, 200, message);
+			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS_UPDATE_APP_DISPLAY_STATUS);
 
 		} catch (error) {
 			return super.createResponse(res, 500, error)
@@ -106,13 +113,15 @@ class AppController extends BaseController {
 
 			const { appId } = req.params
 
-			const { isCompleted, message } = await AppService.deleteApp(appId);
+			const appInfo = await AppService.getAppById(appId);
 
-			if (!isCompleted) {
-				return super.createResponse(res, 400, message)
+			if (!appInfo) {
+				return super.createResponse(res, 404, RESPONSE_CODE.APP_NOT_FOUND);
 			}
 
-			return super.createResponse(res, 200, message)
+			await AppService.deleteApp(appId, appInfo.app_icon_name);
+
+			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS_DELETE_APP)
 
 		} catch (error) {
 			return super.createResponse(res, 500, error)

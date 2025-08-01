@@ -1,112 +1,135 @@
 const BaseController = require("./BaseController")
 const CertificationService = require("../services/CertificationService");
-
+const { RESPONSE_CODE } = require("../constants/response-code");
+const generateUniqueString = require("../utils/generate-unique-string");
 
 class CertificationController extends BaseController {
 	constructor() {
 		super();
 	}
 
-	async getAll(req, res, next) {
+	async getAllCerts(req, res, next) {
 		try {
 
-			const { isCompleted, message, results } = await CertificationService.getAll();
+			const listCerts = await CertificationService.getAllCerts();
 
-			if (!isCompleted) {
-				return super.createResponse(res, 400, message)
-			}
-
-			return super.createResponse(res, 200, message, results)
+			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS_GET_ALL_CERTS, listCerts);
 
 		} catch (error) {
 			return super.createResponse(res, 500, error)
 		}
 	}
 
-	async addNewCertification(req, res, next) {
+	async addNewCert(req, res, next) {
 
 		try {
 
-			const { isCompleted, message, results } = await CertificationService.addNewCertification(req.body, req.file)
+			const { title, issued_by, issued_date } = req.body;
 
-			if (!isCompleted) {
-				return super.createResponse(res, 400, message)
+			if (!req.file) {
+				return super.createResponse(res, 404, RESPONSE_CODE.MISS_CERT_IMAGE)
 			}
 
-			return super.createResponse(res, 200, message, results)
+			const imageName = `cert_${generateUniqueString()}`;
+
+			const [, newCertId] = await Promise.all([
+				CertificationService.uploadCertImage(req.file, imageName),
+				CertificationService.createNewCert(title, issued_by, issued_date, imageName)
+			])
+
+			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS_ADD_CERT, {
+				newCertId
+			})
 		} catch (error) {
 			return super.createResponse(res, 500, error)
 		}
 	}
 
-	async getCertificationDetails(req, res, next) {
+	async getCertInfo(req, res, next) {
 		try {
 			const { certId } = req.params;
 
-			const { isCompleted, message, results } = await CertificationService.getCertificationDetails(certId, true);
+			const certInfo = await CertificationService.getCertInfoById(certId, true);
 
-			if (!isCompleted) {
-				return super.createResponse(res, 400, message)
+			if (!certInfo) {
+				return super.createResponse(res, 404, RESPONSE_CODE.CERT_NOT_FOUND);
 			}
 
-			return super.createResponse(res, 200, message, results)
+			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS_GET_CERT_INFO, certInfo);
 
 		} catch (error) {
 			return super.createResponse(res, 500, error)
 		}
 	}
 
-	async updateCertification(req, res, next) {
+	async updateCertInfo(req, res, next) {
 		try {
 
 			const { certId } = req.params;
 
-			const {
-				isCompleted,
-				message,
-			} = await CertificationService.updateCertification(certId, req.body, req.file)
+			const { title, issued_by, issued_date } = req.body;
 
-			if (!isCompleted) {
-				return super.createResponse(res, 400, message)
+			const certInfo = await CertificationService.getCertInfoById(certId, false);
+
+			if (!certInfo) {
+				return super.createResponse(res, 404, RESPONSE_CODE.CERT_NOT_FOUND);
 			}
 
-			return super.createResponse(res, 200, message || "test")
+			await Promise.all([
+				req.file && CertificationService.uploadCertImage(req.file, certInfo.image_name),
+				CertificationService.updateCertInfo(certId, title, issued_by, issued_date)
+			])
+
+			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS_UPDATE_CERT_INFO);
 
 		} catch (error) {
 			return super.createResponse(res, 500, error)
 		}
 	}
 
-	async softDeleteCertification(req, res, next) {
+	async softDeleteCert(req, res, next) {
 		try {
 
 			const { certId } = req.params
 
-			const { isCompleted, message } = await CertificationService.softDeleteCertification(certId);
 
-			if (!isCompleted) {
-				return super.createResponse(res, 400, message)
+			const certInfo = await CertificationService.getCertInfoById(certId);
+
+			if (!certInfo) {
+				return super.createResponse(res, 404, RESPONSE_CODE.CERT_NOT_FOUND);
 			}
 
-			return super.createResponse(res, 200, message)
+			if (certInfo.is_deleted === 1) {
+				return super.createResponse(res, 404, RESPONSE_CODE.ALREADY_IN_SOFT_DELETE);
+			}
+
+			await CertificationService.softDeleteCert(certId);
+
+			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS_DELETE_CERT);
 
 		} catch (error) {
 			return super.createResponse(res, 500, error)
 		}
 	}
 
-	async recoverCertification(req, res, next) {
+	async recoverCert(req, res, next) {
 		try {
 
 			const { certId } = req.params
 
-			const { isCompleted, message } = await CertificationService.recoverCertification(certId);
+			const certInfo = await CertificationService.getCertInfoById(certId);
 
-			if (!isCompleted) {
-				return super.createResponse(res, 400, message)
+			if (!certInfo) {
+				return super.createResponse(res, 404, RESPONSE_CODE.CERT_NOT_FOUND);
 			}
 
-			return super.createResponse(res, 200, message)
+			if (certInfo.is_deleted === 0) {
+				return super.createResponse(res, 404, RESPONSE_CODE.NOT_IN_SOFT_DELETE);
+			}
+
+			await CertificationService.recoverCert(certId)
+
+			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS_RECOVER_CERT);
 
 
 		} catch (error) {
@@ -114,18 +137,24 @@ class CertificationController extends BaseController {
 		}
 	}
 
-	async permanentDeleteCertification(req, res, next) {
+	async permanentDeleteCert(req, res, next) {
 		try {
 
 			const { certId } = req.params;
 
-			const { isCompleted, message } = await CertificationService.permanentDeleteCertification(certId);
+			const certInfo = await CertificationService.getCertInfoById(certId);
 
-			if (!isCompleted) {
-				return super.createResponse(res, 400, message)
+			if (!certInfo) {
+				return super.createResponse(res, 404, RESPONSE_CODE.CERT_NOT_FOUND);
 			}
 
-			return super.createResponse(res, 200, message)
+			if (certInfo.is_deleted === 0) {
+				return super.createResponse(res, 404, RESPONSE_CODE.ALREADY_IN_SOFT_DELETE);
+			}
+
+			await CertificationService.permanentDeleteCert(certId);
+
+			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS_DELETE_CERT)
 
 		} catch (error) {
 			return super.createResponse(res, 500, error)

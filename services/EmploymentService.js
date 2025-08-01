@@ -1,7 +1,7 @@
 const BaseService = require("./BaseService");
 
 const { employmentSQL } = require("../utils/sql-query-string")
-const Message = require("../utils/response-message");
+const { RESPONSE_CODE } = require("../constants/response-code");
 
 class EmploymentService extends BaseService {
 	constructor() {
@@ -9,231 +9,94 @@ class EmploymentService extends BaseService {
 	}
 
 	async getListEmployment() {
-		try {
-			const listEmployment = await super.query(employmentSQL.getAllEmployments);
 
-			if (!listEmployment) {
-				return {
-					isCompleted: false,
-					message: listEmployment.message
-				}
-			}
+		const { isCompleted, message, results } = await super.query(employmentSQL.getAllEmployments);
 
-			return {
-				isCompleted: true,
-				message: Message.successGetAll("Employment)"),
-				results: listEmployment.results
-			}
-
-		} catch (error) {
-			return {
-				isCompleted: false,
-				message: error,
-			}
+		if (!isCompleted) {
+			throw message;
 		}
+
+		return results
 	}
 
-	async addNewEmployment({ title, organization, time_start, time_end }) {
-		try {
+	async addNewEmployment(title, organization, timeStart, timeEnd) {
 
-			const newEmployment = await super.query(employmentSQL.addNewEmployment, [title, organization, time_start, time_end]);
+		const {
+			isCompleted,
+			message,
+			results
+		} = await super.query(employmentSQL.addNewEmployment, [title, organization, timeStart, timeEnd]);
 
-			if (!newEmployment.isCompleted) {
-				return {
-					isCompleted: false,
-					message: newEmployment.message
-				}
-			}
-
-			return {
-				isCompleted: true,
-				message: Message.successCreate("employment"),
-				results: {
-					newEmploymentId: newEmployment.results.insertId
-				}
-			}
-
-		} catch (error) {
-			return {
-				isCompleted: false,
-				message: error,
-			}
+		if (!isCompleted) {
+			throw message;
 		}
+
+		return results.insertId
 	}
 
-	async getEmploymentDetails(employmentId) {
-		try {
-			const employmentDetails = await super.query(employmentSQL.getEmploymentDetails, [employmentId]);
 
-			if (!employmentDetails.isCompleted) {
-				return {
-					isCompleted: false,
-					message: employmentDetails.message
-				}
-			}
+	async getEmploymentInfoById(employmentId) {
+		const employmentInfo = await super.query(employmentSQL.getEmploymentDetails, [employmentId]);
 
-			return {
-				isCompleted: true,
-				message: Message.successGetOne("employment details"),
-				results: employmentDetails.results[0]
-			}
-		} catch (error) {
-			return {
-				isCompleted: false,
-				message: error,
-			}
+		if (!employmentInfo.isCompleted) {
+			throw new Error(employmentInfo.message);
 		}
+
+		if (employmentInfo.results.length === 0) {
+			return false;
+		}
+
+		return employmentInfo.results[0];
 	}
 
-	async updateEmploymentDetails(employmentId, { title, organization, time_start, time_end }) {
-		try {
+	async updateEmploymentDetails(employmentId, title, organization, timeStart, timeEnd) {
 
-			const updatedEmployment = await super.query(employmentSQL.updateEmployment, [title, organization, time_start, time_end, employmentId]);
+		const {
+			isCompleted,
+			message,
+			results
+		} = await super.query(employmentSQL.updateEmployment, [title, organization, timeStart, timeEnd, employmentId]);
 
-			if (!updatedEmployment.isCompleted) {
-				return {
-					isCompleted: false,
-					message: updatedEmployment.message
-				}
-			}
-
-			return {
-				isCompleted: true,
-				message: Message.successUpdate("employment"),
-			}
-
-		} catch (error) {
-			return {
-				isCompleted: false,
-				message: error,
-			}
+		if (!isCompleted) {
+			throw message;
 		}
+
+		return true
 	}
 
 	async permanentDeleteEmployment(employmentId) {
-		try {
-
-			const employmentDetails = await this.getEmploymentDetails(employmentId);
-
-			if (!employmentDetails.isCompleted) {
-				return {
-					isCompleted: false,
-					message: employmentDetails.message
-				}
-			}
-
-			if (!employmentDetails.results.is_deleted) {
-				return {
-					isCompleted: false,
-					message: Message.notInSoftDelete("employment")
-				}
-			}
-
-			const permanentDeleteEmployment = await super.query(employmentSQL.permanentDeleteEmployment, [employmentId]);
-
-			if (!permanentDeleteEmployment.isCompleted) {
-				return {
-					isCompleted: false,
-					message: permanentDeleteEmployment.message
-				}
-			}
-
-			return {
-				isCompleted: true,
-				message: Message.successDelete("employment"),
-			}
 
 
-		} catch (error) {
-			return {
-				isCompleted: false,
-				message: error,
-			}
+		const { isCompleted, message } = await super.query(employmentSQL.permanentDeleteEmployment, [employmentId]);
+
+		if (!isCompleted) {
+			throw message;
 		}
+
+		return true
+
+
 	}
 
 	async softDeleteEmployment(employmentId) {
-		try {
 
-			const employmentDetails = await this.getEmploymentDetails(employmentId);
+		const { isCompleted, message } = await super.query(employmentSQL.softDeleteEmployment, [employmentId]);
 
-			if (!employmentDetails.isCompleted) {
-				return {
-					isCompleted: false,
-					message: employmentDetails.message
-				}
-			}
-
-			if (employmentDetails.results.is_deleted) {
-				return {
-					isCompleted: false,
-					message: Message.alreadyInSoftDelete("employment")
-				}
-			}
-
-			const softDeleteEmployment = await super.query(employmentSQL.softDeleteEmployment, [employmentId]);
-
-			if (!softDeleteEmployment.isCompleted) {
-				return {
-					isCompleted: false,
-					message: softDeleteEmployment.message
-				}
-			}
-
-			return {
-				isCompleted: true,
-				message: Message.successDelete("employment"),
-			}
-
-
-		} catch (error) {
-			return {
-				isCompleted: false,
-				message: error,
-			}
+		if (!isCompleted) {
+			throw message
 		}
+
+		return true
 	}
 
 	async recoverEmployment(employmentId) {
-		try {
+		const { isCompleted, message } = await super.query(employmentSQL.recoverEmployment, [employmentId]);
 
-			const employmentDetails = await this.getEmploymentDetails(employmentId);
-
-			if (!employmentDetails.isCompleted) {
-				return {
-					isCompleted: false,
-					message: employmentDetails.message
-				}
-			}
-
-			if (!employmentDetails.results.is_deleted) {
-				return {
-					isCompleted: false,
-					message: Message.notInSoftDelete("employment")
-				}
-			}
-
-			const recoverEmployment = await super.query(employmentSQL.recoverEmployment, [employmentId]);
-
-			if (!recoverEmployment.isCompleted) {
-				return {
-					isCompleted: false,
-					message: recoverEmployment.message
-				}
-			}
-
-			return {
-				isCompleted: true,
-				message: Message.successRecover("employment"),
-			}
-
-
-		} catch (error) {
-			return {
-				isCompleted: false,
-				message: error,
-			}
+		if (!isCompleted) {
+			throw message;
 		}
+
+		return true
 	}
 
 }

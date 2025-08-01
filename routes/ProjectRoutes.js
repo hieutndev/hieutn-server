@@ -21,6 +21,17 @@ router.post('/', accessTokenChecker, requireRole(1), upload.fields([
 		maxCount: 20,
 	}
 ]), ProjectController.createNewProject);
+
+// router.post('/', upload.fields([
+// 	{
+// 		name: "project_thumbnail",
+// 		maxCount: 1,
+// 	},
+// 	{
+// 		name: "project_images",
+// 		maxCount: 20,
+// 	}
+// ]), ProjectController.createNewProject);
 router.get("/groups", ProjectController.getListProjectGroups);
 router.post("/groups", ProjectController.createNewProjectGroups);
 router.patch("/groups/:groupId", ProjectController.updateProjectGroups)
