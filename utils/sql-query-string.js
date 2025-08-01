@@ -219,6 +219,44 @@ const QueryString = {
                                 pg.group_title
                          FROM ${TABLE_NAMES.PORTFOLIO_PROJECTS} AS pj
                                   left JOIN ${TABLE_NAMES.PORTFOLIO_PROJECT_GROUPS} as pg on pj.group_id = pg.group_id`,
+		getAllProjectsWithSearch: `SELECT pj.id,
+                                          pj.project_fullname,
+                                          pj.project_shortname,
+                                          pj.start_date,
+                                          pj.end_date,
+                                          pj.short_description,
+                                          pj.project_thumbnail,
+                                          pj.created_at,
+                                          pj.updated_at,
+                                          pj.group_id,
+                                          pg.group_title
+                                   FROM ${TABLE_NAMES.PORTFOLIO_PROJECTS} AS pj
+                                            left JOIN ${TABLE_NAMES.PORTFOLIO_PROJECT_GROUPS} as pg on pj.group_id = pg.group_id
+                                   WHERE (pj.project_fullname LIKE ? OR pj.project_shortname LIKE ? OR pj.short_description LIKE ? OR pg.group_title LIKE ?)
+                                   ORDER BY pj.created_at DESC
+                                   LIMIT ? OFFSET ?`,
+		getAllProjectsWithoutSearch: `SELECT pj.id,
+                                             pj.project_fullname,
+                                             pj.project_shortname,
+                                             pj.start_date,
+                                             pj.end_date,
+                                             pj.short_description,
+                                             pj.project_thumbnail,
+                                             pj.created_at,
+                                             pj.updated_at,
+                                             pj.group_id,
+                                             pg.group_title
+                                      FROM ${TABLE_NAMES.PORTFOLIO_PROJECTS} AS pj
+                                               left JOIN ${TABLE_NAMES.PORTFOLIO_PROJECT_GROUPS} as pg on pj.group_id = pg.group_id
+                                      ORDER BY pj.created_at DESC
+                                      LIMIT ? OFFSET ?`,
+		countProjectsWithSearch: `SELECT COUNT(*) as total
+                                      FROM ${TABLE_NAMES.PORTFOLIO_PROJECTS} AS pj
+                                               LEFT JOIN ${TABLE_NAMES.PORTFOLIO_PROJECT_GROUPS} as pg on pj.group_id = pg.group_id
+                                      WHERE (pj.project_fullname LIKE ? OR pj.project_shortname LIKE ? OR pj.short_description LIKE ? OR pg.group_title LIKE ?)`,
+		countProjectsWithoutSearch: `SELECT COUNT(*) as total
+                                         FROM ${TABLE_NAMES.PORTFOLIO_PROJECTS} AS pj
+                                                  LEFT JOIN ${TABLE_NAMES.PORTFOLIO_PROJECT_GROUPS} as pg on pj.group_id = pg.group_id`,
 		getProjectDetails: `SELECT *
                             FROM ${TABLE_NAMES.PORTFOLIO_PROJECTS} as proj
                                      JOIN ${TABLE_NAMES.PORTFOLIO_PROJECT_ARTICLES} as article ON proj.id = article.project_id
@@ -283,6 +321,20 @@ const QueryString = {
 	educationSQL: {
 		getAllEducations: `SELECT *
                            FROM ${TABLE_NAMES.PORTFOLIO_EDUCATION}`,
+		getAllEducationsWithSearch: `SELECT *
+                                     FROM ${TABLE_NAMES.PORTFOLIO_EDUCATION}
+                                     WHERE (title LIKE ? OR organization LIKE ?)
+                                     ORDER BY time_start DESC, created_at DESC
+                                     LIMIT ? OFFSET ?`,
+		getAllEducationsWithoutSearch: `SELECT *
+                                        FROM ${TABLE_NAMES.PORTFOLIO_EDUCATION}
+                                        ORDER BY time_start DESC, created_at DESC
+                                        LIMIT ? OFFSET ?`,
+		countEducationsWithSearch: `SELECT COUNT(*) as total
+                                    FROM ${TABLE_NAMES.PORTFOLIO_EDUCATION}
+                                    WHERE (title LIKE ? OR organization LIKE ?)`,
+		countEducationsWithoutSearch: `SELECT COUNT(*) as total
+                                       FROM ${TABLE_NAMES.PORTFOLIO_EDUCATION}`,
 		getEducationDetails: `SELECT *
                               FROM ${TABLE_NAMES.PORTFOLIO_EDUCATION}
                               WHERE id = ?`,
@@ -310,6 +362,20 @@ const QueryString = {
 	certificationSQL: {
 		getAllCertifications: `SELECT *
                                FROM ${TABLE_NAMES.PORTFOLIO_CERTIFICATION}`,
+		getAllCertificationsWithSearch: `SELECT *
+                                         FROM ${TABLE_NAMES.PORTFOLIO_CERTIFICATION}
+                                         WHERE (title LIKE ? OR issued_by LIKE ?)
+                                         ORDER BY issued_date DESC, created_at DESC
+                                         LIMIT ? OFFSET ?`,
+		getAllCertificationsWithoutSearch: `SELECT *
+                                            FROM ${TABLE_NAMES.PORTFOLIO_CERTIFICATION}
+                                            ORDER BY issued_date DESC, created_at DESC
+                                            LIMIT ? OFFSET ?`,
+		countCertificationsWithSearch: `SELECT COUNT(*) as total
+                                        FROM ${TABLE_NAMES.PORTFOLIO_CERTIFICATION}
+                                        WHERE (title LIKE ? OR issued_by LIKE ?)`,
+		countCertificationsWithoutSearch: `SELECT COUNT(*) as total
+                                           FROM ${TABLE_NAMES.PORTFOLIO_CERTIFICATION}`,
 		getCertificationDetails: `SELECT *
                                   FROM ${TABLE_NAMES.PORTFOLIO_CERTIFICATION}
                                   WHERE id = ?`,
@@ -336,6 +402,20 @@ const QueryString = {
 	employmentSQL: {
 		getAllEmployments: `SELECT *
                             FROM ${TABLE_NAMES.PORTFOLIO_EMPLOYMENT}`,
+		getAllEmploymentsWithSearch: `SELECT *
+                                      FROM ${TABLE_NAMES.PORTFOLIO_EMPLOYMENT}
+                                      WHERE (title LIKE ? OR organization LIKE ?)
+                                      ORDER BY time_start DESC, created_at DESC
+                                      LIMIT ? OFFSET ?`,
+		getAllEmploymentsWithoutSearch: `SELECT *
+                                         FROM ${TABLE_NAMES.PORTFOLIO_EMPLOYMENT}
+                                         ORDER BY time_start DESC, created_at DESC
+                                         LIMIT ? OFFSET ?`,
+		countEmploymentsWithSearch: `SELECT COUNT(*) as total
+                                     FROM ${TABLE_NAMES.PORTFOLIO_EMPLOYMENT}
+                                     WHERE (title LIKE ? OR organization LIKE ?)`,
+		countEmploymentsWithoutSearch: `SELECT COUNT(*) as total
+                                        FROM ${TABLE_NAMES.PORTFOLIO_EMPLOYMENT}`,
 		getEmploymentDetails: `SELECT *
                                FROM ${TABLE_NAMES.PORTFOLIO_EMPLOYMENT}
                                WHERE id = ?`,
@@ -377,6 +457,20 @@ const QueryString = {
                          WHERE user_id = ?`,
 		getListAccounts: `SELECT *
                           FROM ${TABLE_NAMES.ACCOUNTS}`,
+		getListAccountsWithSearch: `SELECT *
+                                    FROM ${TABLE_NAMES.ACCOUNTS}
+                                    WHERE (username LIKE ? OR email LIKE ?)
+                                    ORDER BY created_at DESC
+                                    LIMIT ? OFFSET ?`,
+		getListAccountsWithoutSearch: `SELECT *
+                                       FROM ${TABLE_NAMES.ACCOUNTS}
+                                       ORDER BY created_at DESC
+                                       LIMIT ? OFFSET ?`,
+		countAccountsWithSearch: `SELECT COUNT(*) as total
+                                  FROM ${TABLE_NAMES.ACCOUNTS}
+                                  WHERE (username LIKE ? OR email LIKE ?)`,
+		countAccountsWithoutSearch: `SELECT COUNT(*) as total
+                                     FROM ${TABLE_NAMES.ACCOUNTS}`,
 		blockAccount: `UPDATE ${TABLE_NAMES.ACCOUNTS}
                        SET is_active = 0
                        WHERE user_id = ?`,
@@ -387,12 +481,41 @@ const QueryString = {
 	appSQL: {
 		getAllApps: `SELECT *
                      FROM ${TABLE_NAMES.PORTFOLIO_APPS}`,
+		getAllAppsWithSearchAndFilter: `SELECT *
+                                        FROM ${TABLE_NAMES.PORTFOLIO_APPS}
+                                        WHERE (app_name LIKE ?) AND is_hide = ?
+                                        ORDER BY created_at DESC
+                                        LIMIT ? OFFSET ?`,
+		getAllAppsWithSearch: `SELECT *
+                               FROM ${TABLE_NAMES.PORTFOLIO_APPS}
+                               WHERE (app_name LIKE ?)
+                               ORDER BY created_at DESC
+                               LIMIT ? OFFSET ?`,
+		getAllAppsWithFilter: `SELECT *
+                               FROM ${TABLE_NAMES.PORTFOLIO_APPS}
+                               WHERE is_hide = ?
+                               ORDER BY created_at DESC
+                               LIMIT ? OFFSET ?`,
+		getAllAppsWithoutSearchAndFilter: `SELECT *
+                                           FROM ${TABLE_NAMES.PORTFOLIO_APPS}
+                                           ORDER BY created_at DESC
+                                           LIMIT ? OFFSET ?`,
+		countAppsWithSearchAndFilter: `SELECT COUNT(*) as total
+                                       FROM ${TABLE_NAMES.PORTFOLIO_APPS}
+                                       WHERE (app_name LIKE ?) AND is_hide = ?`,
+		countAppsWithSearch: `SELECT COUNT(*) as total
+                              FROM ${TABLE_NAMES.PORTFOLIO_APPS}
+                              WHERE (app_name LIKE ?)`,
+		countAppsWithFilter: `SELECT COUNT(*) as total
+                              FROM ${TABLE_NAMES.PORTFOLIO_APPS}
+                              WHERE is_hide = ?`,
+		countAppsWithoutSearchAndFilter: `SELECT COUNT(*) as total
+                                          FROM ${TABLE_NAMES.PORTFOLIO_APPS}`,
 		getAppInformation: `SELECT *
                             FROM ${TABLE_NAMES.PORTFOLIO_APPS}
                             WHERE app_id = ?`,
 		addNewApp: `INSERT INTO ${TABLE_NAMES.PORTFOLIO_APPS} (app_name, app_icon, app_link)
                     VALUES (?, ?, ?)`,
-
 		updateAppInformation: `UPDATE ${TABLE_NAMES.PORTFOLIO_APPS}
                                SET app_name = ?,
                                    app_link = ?
@@ -403,7 +526,6 @@ const QueryString = {
 		deleteApp: `DELETE
                     FROM ${TABLE_NAMES.PORTFOLIO_APPS}
                     WHERE app_id = ?`,
-
 	},
 }
 

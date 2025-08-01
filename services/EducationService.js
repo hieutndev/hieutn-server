@@ -10,15 +10,57 @@ class EducationService extends BaseService {
 
 	}
 
-	async getAllEducation() {
+	async getAllEducation(options = {}) {
+		const {
+			search = '',
+			page = 1,
+			limit = 10
+		} = options;
 
-		const { isCompleted, message, results } = await super.query(educationSQL.getAllEducations)
+		// Calculate offset for pagination
+		const offset = (page - 1) * limit;
 
-		if (!isCompleted) {
-			throw message
+		let countQuery, dataQuery, countParams, dataParams;
+
+		if (search && search.trim()) {
+			const searchTerm = `%${search.trim()}%`;
+
+			// Use search queries
+			countQuery = educationSQL.countEducationsWithSearch;
+			dataQuery = educationSQL.getAllEducationsWithSearch;
+			countParams = [searchTerm, searchTerm];
+			dataParams = [searchTerm, searchTerm, limit, offset];
+		} else {
+			// Use non-search queries
+			countQuery = educationSQL.countEducationsWithoutSearch;
+			dataQuery = educationSQL.getAllEducationsWithoutSearch;
+			countParams = [];
+			dataParams = [limit, offset];
 		}
 
-		return results
+		// Get total count for pagination
+		const { isCompleted: countCompleted, message: countMessage, results: countResults } = await super.query(countQuery, countParams);
+
+		if (!countCompleted) {
+			throw countMessage;
+		}
+
+		const totalCount = countResults[0].total;
+
+		// Get paginated results
+		const { isCompleted, message, results } = await super.query(dataQuery, dataParams);
+
+		if (!isCompleted) {
+			throw message;
+		}
+
+		return {
+			results,
+			totalCount,
+			page,
+			limit,
+			totalPages: Math.ceil(totalCount / limit)
+		};
 	}
 
 	async getEducationById(educationId) {

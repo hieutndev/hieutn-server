@@ -10,10 +10,22 @@ class CertificationController extends BaseController {
 
 	async getAllCerts(req, res, next) {
 		try {
+			const { search, page, limit } = req.query;
 
-			const listCerts = await CertificationService.getAllCerts();
+			// Parse and validate pagination parameters
+			const options = {
+				search: search || '',
+				page: parseInt(page) || 1,
+				limit: parseInt(limit) || 10
+			};
 
-			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS_GET_ALL_CERTS, listCerts);
+			// Validate page and limit values
+			if (options.page < 1) options.page = 1;
+			if (options.limit < 1 || options.limit > 100) options.limit = 10;
+
+			const {results, ...metadata} = await CertificationService.getAllCerts(options);
+
+			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS_GET_ALL_CERTS, results, metadata);
 
 		} catch (error) {
 			return super.createResponse(res, 500, error)

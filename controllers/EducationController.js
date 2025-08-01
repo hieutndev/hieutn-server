@@ -10,10 +10,22 @@ class EducationController extends BaseController {
 
 	async getListEducation(req, res, next) {
 		try {
+			const { search, page, limit } = req.query;
 
-			const listEdu = await EducationService.getAllEducation();
+			// Parse and validate pagination parameters
+			const options = {
+				search: search || '',
+				page: parseInt(page) || 1,
+				limit: parseInt(limit) || 10
+			};
 
-			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS_GET_ALL_EDU, listEdu)
+			// Validate page and limit values
+			if (options.page < 1) options.page = 1;
+			if (options.limit < 1 || options.limit > 100) options.limit = 10;
+
+			const {results, ...metadata} = await EducationService.getAllEducation(options);
+
+			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS_GET_ALL_EDU, results, metadata)
 
 		} catch (error) {
 			return super.createResponse(res, 500, error)
