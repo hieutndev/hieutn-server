@@ -14,11 +14,11 @@ class AppController extends BaseController {
 
 			const validFilter = ["all", "onlyShow", "onlyHide"];
 
-			if (!validFilter.includes(filter)) {
+			if (filter && !validFilter.includes(filter)) {
 				return super.createResponse(res, 404, RESPONSE_CODE.INVALID_FILTER_APP);
 			}
 
-			const listApps = await AppService.getAllApps(filter);
+			const listApps = await AppService.getAllApps(filter ?? "all");
 
 			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS_GET_ALL_APPS, listApps)
 
@@ -52,7 +52,7 @@ class AppController extends BaseController {
 
 
 			let appIconName = null;
-			if (!req.file) {
+			if (req.file) {
 				appIconName = `app_${generateUniqueString()}`;
 
 				await AppService.uploadAppIcon(req.file, appIconName)
@@ -97,11 +97,9 @@ class AppController extends BaseController {
 	async updateAppDisplayStatus(req, res, next) {
 		try {
 
-			const { appId } = req.params;
+			const { new_status, app_id } = req.body;
 
-			const { new_status } = req.body;
-
-			await AppService.updateAppDisplayStatus(appId, new_status)
+			await AppService.updateAppDisplayStatus(app_id, new_status)
 
 			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS_UPDATE_APP_DISPLAY_STATUS);
 
