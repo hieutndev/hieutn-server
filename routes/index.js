@@ -8,6 +8,7 @@ const CertificationRoutes = require('./CertificationRoutes');
 const EmploymentRoutes = require('./EmploymentRoutes');
 const AccountRoutes = require('./AccountRoutes');
 const AppRoutes = require('./AppRoutes');
+const S3Routes = require('./S3Routes');
 
 
 router.use('/game-card', GameCardRoutes);
@@ -18,5 +19,6 @@ router.use('/certification', CertificationRoutes);
 router.use('/employment', EmploymentRoutes);
 router.use('/accounts', AccountRoutes);
 router.use('/apps', AppRoutes);
+router.use('/s3', S3Routes)
 
 module.exports = router;
