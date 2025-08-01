@@ -36,7 +36,7 @@ class EmploymentService extends BaseService {
 
 
 	async getEmploymentInfoById(employmentId) {
-		const employmentInfo = await super.query(employmentSQL.getEmploymentInfoById, [employmentId]);
+		const employmentInfo = await super.query(employmentSQL.getEmploymentDetails, [employmentId]);
 
 		if (!employmentInfo.isCompleted) {
 			throw new Error(employmentInfo.message);
