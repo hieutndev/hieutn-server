@@ -14,10 +14,12 @@ class AccountController extends BaseController {
 	async signUp(req, res, next) {
 		try {
 
-			const { email, username, password, confirm_password, role } = req.body;
+			const { email, username, password, confirm_password, role, from_admin } = req.body;
 
-			if (password !== confirm_password) {
-				return super.createResponse(res, 404, RESPONSE_CODE.PASSWORD_NOT_MATCH);
+			if (from_admin && from_admin !== 1) {
+				if (password !== confirm_password) {
+					return super.createResponse(res, 404, RESPONSE_CODE.PASSWORD_NOT_MATCH);
+				}
 			}
 
 			if (!REGEX.PASSWORD.test(password)) {
@@ -36,7 +38,7 @@ class AccountController extends BaseController {
 				}
 			}
 
-			await AccountService.signUp(username, email, password);
+			await AccountService.signUp(username, email, password, role);
 
 			return super.createResponse(res, 201, RESPONSE_CODE.SUCCESS_SIGN_UP)
 
@@ -125,11 +127,14 @@ class AccountController extends BaseController {
 				limit: parseInt(limit) || 10
 			};
 
+			console.log(options.page);
+
+
 			// Validate page and limit values
 			if (options.page < 1) options.page = 1;
 			if (options.limit < 1 || options.limit > 100) options.limit = 10;
 
-			const {results, ...metadata} = await AccountService.getAllAccounts(options);
+			const { results, ...metadata } = await AccountService.getAllAccounts(options);
 
 			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS_GET_ALL_ACCOUNTS, results, metadata)
 

@@ -112,7 +112,7 @@ class AccountService extends BaseService {
 		return !!(await bcrypt.compare(inputPassword, hashedPassword));
 	}
 
-	async signUp(username, email, password) {
+	async signUp(username, email, password, role) {
 		const {
 			isCompleted,
 			message,
