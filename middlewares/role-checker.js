@@ -3,12 +3,10 @@ function requireRole(role) {
 		if (req.role < role) {
 			return res.status(403).json({
 				status: "failure",
-				message: "You don't have permission to perform this.",
+				message: "NO_PERMISSION",
 			});
 		}
-
 		return next();
-
 	}
 }
 

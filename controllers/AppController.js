@@ -29,7 +29,7 @@ class AppController extends BaseController {
 			if (options.page < 1) options.page = 1;
 			if (options.limit < 1 || options.limit > 100) options.limit = 10;
 
-			const {results, ...metadata} = await AppService.getAllApps(filter ?? "all", false, options);
+			const {results, ...metadata} = await AppService.getAllApps(filter ?? "all", true, options);
 
 			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS_GET_ALL_APPS, results, metadata)
 
