@@ -9,9 +9,10 @@ router.post("/sign-up", AccountController.signUp);
 router.post("/sign-in", AccountController.signIn);
 router.get("/rftk", refreshTokenChecker, AccountController.getNewAccessToken);
 router.get("/check", AccountController.checkValidEmail)
+router.get("/check-session", AccountController.checkSession)
 
-// router.get("/", accessTokenChecker, requireRole(1), AccountController.getAllAccounts);
-router.get("/", AccountController.getAllAccounts);
+router.get("/", accessTokenChecker, requireRole(1), AccountController.getAllAccounts);
+// router.get("/", AccountController.getAllAccounts);
 router.patch("/:accountId/active", accessTokenChecker, requireRole(1), AccountController.updateAccountActiveStatus);
 
 

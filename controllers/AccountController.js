@@ -2,7 +2,7 @@ const BaseController = require("./BaseController")
 const AccountService = require("../services/AccountService")
 const { RESPONSE_CODE } = require("../constants/response-code");
 const REGEX = require("../utils/regex");
-const { generateRefreshToken, generateAccessToken } = require("../utils/jwt-helpers");
+const { generateRefreshToken, generateAccessToken, verifyToken } = require("../utils/jwt-helpers");
 const { accountSQL } = require("../utils/sql-query-string");
 
 
@@ -195,6 +195,44 @@ class AccountController extends BaseController {
 					username: accountInfo.username
 				} : null
 			})
+
+		} catch (error) {
+			return super.createResponse(res, 500, error)
+		}
+	}
+
+	async checkSession(req, res, next) {
+
+		try {
+			const { token } = req.query
+
+			if (!token) {
+				return super.createResponse(res, 403, RESPONSE_CODE.NO_PERMISSION);
+			}
+
+			try {
+				const { user_id } = await verifyToken(token);
+
+				const accountInfo = await AccountService.isAccountExist(user_id, "id");
+
+				if (accountInfo.role !== 1) {
+					return super.createResponse(res, 403, RESPONSE_CODE.NO_PERMISSION);
+				}
+
+				return super.createResponse(res, 200)
+			} catch (error) {
+				if (error.name === "TokenExpiredError") {
+					return super.createResponse(res, 404, RESPONSE_CODE.EXPIRED_REFRESH_TOKEN);
+				}
+
+				console.log(error)
+
+				return res.status(500).json({
+					status: "error",
+					message: error
+				})
+			}
+
 
 		} catch (error) {
 			return super.createResponse(res, 500, error)
