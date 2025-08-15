@@ -9,11 +9,22 @@ class EmploymentController extends BaseController {
 
 	async getListEmployment(req, res, next) {
 		try {
+			const { search, page, limit } = req.query;
 
-			const listEmployment = await EmploymentService.getListEmployment();
+			// Parse and validate pagination parameters
+			const options = {
+				search: search || '',
+				page: parseInt(page) || 1,
+				limit: parseInt(limit) || 10
+			};
 
+			// Validate page and limit values
+			if (options.page < 1) options.page = 1;
+			if (options.limit < 1 || options.limit > 100) options.limit = 10;
 
-			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS_GET_ALL_EMPLOYMENTS, listEmployment)
+			const {results, ...metadata} = await EmploymentService.getListEmployment(options);
+
+			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS_GET_ALL_EMPLOYMENTS, results, metadata)
 
 		} catch (error) {
 			return super.createResponse(res, 500, error)

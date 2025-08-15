@@ -50,11 +50,22 @@ class ProjectController extends BaseController {
 
 	async getAllProjects(req, res, next) {
 		try {
+			const { search, page, limit } = req.query;
 
-			const listProjects = await ProjectService.getAllProjects();
+			// Parse and validate pagination parameters
+			const options = {
+				search: search || '',
+				page: parseInt(page) || 1,
+				limit: parseInt(limit) || 10
+			};
 
-			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS_GET_ALL_PROJECTS, listProjects)
+			// Validate page and limit values
+			if (options.page < 1) options.page = 1;
+			if (options.limit < 1 || options.limit > 100) options.limit = 10;
 
+			const {results, ...metadata} = await ProjectService.getAllProjects(options);
+
+			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS_GET_ALL_PROJECTS, results, metadata)
 
 		} catch (error) {
 			return super.createResponse(res, 500, error)

@@ -21,16 +21,57 @@ class CertificationService extends BaseService {
 
 	}
 
-	async getAllCerts() {
+	async getAllCerts(options = {}) {
+		const {
+			search = '',
+			page = 1,
+			limit = 10
+		} = options;
 
-		const { isCompleted, message, results } = await super.query(certificationSQL.getAllCertifications);
+		// Calculate offset for pagination
+		const offset = (page - 1) * limit;
+
+		let countQuery, dataQuery, countParams, dataParams;
+
+		if (search && search.trim()) {
+			const searchTerm = `%${search.trim()}%`;
+
+			// Use search queries
+			countQuery = certificationSQL.countCertificationsWithSearch;
+			dataQuery = certificationSQL.getAllCertificationsWithSearch;
+			countParams = [searchTerm, searchTerm];
+			dataParams = [searchTerm, searchTerm, limit, offset];
+		} else {
+			// Use non-search queries
+			countQuery = certificationSQL.countCertificationsWithoutSearch;
+			dataQuery = certificationSQL.getAllCertificationsWithoutSearch;
+			countParams = [];
+			dataParams = [limit, offset];
+		}
+
+		// Get total count for pagination
+		const { isCompleted: countCompleted, message: countMessage, results: countResults } = await super.query(countQuery, countParams);
+
+		if (!countCompleted) {
+			throw countMessage;
+		}
+
+		const totalCount = countResults[0].total;
+
+		// Get paginated results
+		const { isCompleted, message, results } = await super.query(dataQuery, dataParams);
 
 		if (!isCompleted) {
 			throw message;
 		}
 
-		return results
-
+		return {
+			results,
+			totalCount,
+			page,
+			limit,
+			totalPages: Math.ceil(totalCount / limit)
+		};
 	}
 
 	async createNewCert(title, issuedBy, issuedDate, imageName) {
