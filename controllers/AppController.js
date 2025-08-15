@@ -10,7 +10,7 @@ class AppController extends BaseController {
 
 	async getAllApps(req, res, next) {
 		try {
-			const { filter } = req.query;
+			const { filter, search, page, limit } = req.query;
 
 			const validFilter = ["all", "onlyShow", "onlyHide"];
 
@@ -18,9 +18,20 @@ class AppController extends BaseController {
 				return super.createResponse(res, 404, RESPONSE_CODE.INVALID_FILTER_APP);
 			}
 
-			const listApps = await AppService.getAllApps(filter ?? "all");
+			// Parse and validate pagination parameters
+			const options = {
+				search: search || '',
+				page: parseInt(page) || 1,
+				limit: parseInt(limit) || 10
+			};
 
-			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS_GET_ALL_APPS, listApps)
+			// Validate page and limit values
+			if (options.page < 1) options.page = 1;
+			if (options.limit < 1 || options.limit > 100) options.limit = 10;
+
+			const {results, ...metadata} = await AppService.getAllApps(filter ?? "all", false, options);
+
+			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS_GET_ALL_APPS, results, metadata)
 
 		} catch (error) {
 			return super.createResponse(res, 500, error)

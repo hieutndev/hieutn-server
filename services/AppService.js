@@ -22,29 +22,75 @@ class AppService extends BaseService {
 		});
 	}
 
-	async getAllApps(filter = "all", isGetIconUrl = false) {
+	async getAllApps(filter = "all", isGetIconUrl = false, options = {}) {
+		const {
+			search = '',
+			page = 1,
+			limit = 10
+		} = options;
 
-		const { isCompleted, message, results } = await super.query(appSQL.getAllApps);
+		// Calculate offset for pagination
+		const offset = (page - 1) * limit;
+
+		let countQuery, dataQuery, countParams, dataParams;
+		const hasSearch = search && search.trim();
+		const hasFilter = filter === "onlyShow" || filter === "onlyHide";
+		const searchTerm = hasSearch ? `%${search.trim()}%` : null;
+		const filterValue = filter === "onlyShow" ? 0 : 1;
+
+		// Determine which queries to use based on search and filter
+		if (hasSearch && hasFilter) {
+			countQuery = appSQL.countAppsWithSearchAndFilter;
+			dataQuery = appSQL.getAllAppsWithSearchAndFilter;
+			countParams = [searchTerm, filterValue];
+			dataParams = [searchTerm, filterValue, limit, offset];
+		} else if (hasSearch && !hasFilter) {
+			countQuery = appSQL.countAppsWithSearch;
+			dataQuery = appSQL.getAllAppsWithSearch;
+			countParams = [searchTerm];
+			dataParams = [searchTerm, limit, offset];
+		} else if (!hasSearch && hasFilter) {
+			countQuery = appSQL.countAppsWithFilter;
+			dataQuery = appSQL.getAllAppsWithFilter;
+			countParams = [filterValue];
+			dataParams = [filterValue, limit, offset];
+		} else {
+			countQuery = appSQL.countAppsWithoutSearchAndFilter;
+			dataQuery = appSQL.getAllAppsWithoutSearchAndFilter;
+			countParams = [];
+			dataParams = [limit, offset];
+		}
+
+		// Get total count for pagination
+		const { isCompleted: countCompleted, message: countMessage, results: countResults } = await super.query(countQuery, countParams);
+
+		if (!countCompleted) {
+			throw countMessage;
+		}
+
+		const totalCount = countResults[0].total;
+
+		// Get paginated results
+		const { isCompleted, message, results } = await super.query(dataQuery, dataParams);
 
 		if (!isCompleted) {
-			throw message
+			throw message;
 		}
 
-		let listApps = results;
-
-
-		if (filter === "onlyShow") {
-			listApps = results.filter((app) => app.is_hide === 0);
-		} else if (filter === "onlyHide") {
-			listApps = results.filter((app) => app.is_hide === 1);
-		}
-
-		return await Promise.all(listApps.map(async (app) => {
+		// Process app icons
+		const processedApps = await Promise.all(results.map(async (app) => {
 			app.app_icon = isGetIconUrl ? await s3.getObject(app.app_icon) : app.app_icon;
 			app.app_icon_name = app.app_icon;
-			return app
-		}))
+			return app;
+		}));
 
+		return {
+			results: processedApps,
+			totalCount,
+			page,
+			limit,
+			totalPages: Math.ceil(totalCount / limit)
+		};
 	}
 
 	async getAppById(appId, isParseIconUrl = false) {
