@@ -119,8 +119,10 @@ class ProjectService extends BaseService {
 		if (projectInfo.results.length === 0) {
 			return false;
 		}
+		console.log(projectInfo.results);
+		
 
-		const [projectThumbnailUrl, listProjectImages] = await Promise.all([isGetThumbnail && s3Bucket.getObject(projectInfo.results[0].project_thumbnail), isGetListImages && this.getListProjectImages(projectId, true)])
+		const [projectThumbnailUrl, listProjectImages] = await Promise.all([isGetThumbnail && projectInfo.results[0].project_thumbnail && s3Bucket.getObject(projectInfo.results[0].project_thumbnail), isGetListImages && this.getListProjectImages(projectId, true)])
 
 		return {
 			...projectInfo.results[0],

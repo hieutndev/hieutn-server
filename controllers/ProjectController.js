@@ -22,11 +22,26 @@ class ProjectController extends BaseController {
 				demo_link
 			} = req.body;
 
+
+			const missingFields = [
+				'project_fullname' && req.body.project_fullname,
+				'project_shortname' && req.body.project_shortname,
+				'start_date' && req.body.start_date,
+				'end_date' && req.body.end_date,
+				'short_description' && req.body.short_description,
+				'article_body' && req.body.article_body,
+				'project_thumbnail' && req.files.project_thumbnail,
+			]
+
+			if (missingFields.filter(_ => _ === false)) {
+				return super.createResponse(res, 404, RESPONSE_CODE.MISSING_REQUIRED_FIELDS)
+			}
+
 			const projectThumbnail = req.files.project_thumbnail && req.files.project_thumbnail[0];
 
 			const projectImages = req.files.project_images;
 
-			const projectThumbnailName = `projectThumbnail_${generateUniqueString()}`;
+			const projectThumbnailName = projectThumbnail ? `projectThumbnail_${generateUniqueString()}` : null;
 
 			const projectImageNames = projectImages ? projectImages.map((_v) => `projectImage_${generateUniqueString()}`) : [];
 
@@ -120,6 +135,10 @@ class ProjectController extends BaseController {
 				return super.createResponse(res, 404, RESPONSE_CODE.PROJECT_NOT_FOUND);
 			}
 
+			if (!projectInfo.project_thumbnail) {
+				projectInfo.project_thumbnail = projectThumbnail ? `projectThumbnail_${generateUniqueString()}` : '';
+			}
+
 			const removeImages = JSON.parse(remove_images);
 
 			await Promise.all([
@@ -150,13 +169,16 @@ class ProjectController extends BaseController {
 				return super.createResponse(res, 404, RESPONSE_CODE.PROJECT_NOT_FOUND);
 			}
 
-			const listProjectImages = (await ProjectService.getListProjectImages(projectId)).map((img) => img.image_name);
+			await ProjectService.getListProjectImages(projectId)
+			
+
+			const listProjectImages = await ProjectService.getListProjectImages(projectId);
 
 
 			await Promise.all([
 				ProjectService.deleteProject(projectId),
 				ProjectService.s3Delete(projectInfo.project_thumbnail_name),
-				ProjectService.removeListProjectImageNames(projectId, listProjectImages),
+				listProjectImages && ProjectService.removeListProjectImageNames(projectId, listProjectImages).map((img) => img.image_name),
 				listProjectImages && listProjectImages.map((imageName) => ProjectService.s3Delete(imageName))
 			])
 
