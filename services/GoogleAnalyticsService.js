@@ -25,10 +25,6 @@ class GoogleAnalyticsService {
     }
 
     async getTrafficData(startDate, endDate) {
-        if (this.useMockData) {
-            return this.getMockTrafficData(startDate, endDate);
-        }
-
         try {
             const [response] = await this.analyticsDataClient.runReport({
                 property: `properties/${this.propertyId}`,
@@ -90,6 +86,9 @@ class GoogleAnalyticsService {
                     {
                         name: 'engagedSessions',
                     },
+                    {
+                        name: 'userEngagementDuration',
+                    },
                 ],
                 orderBys: [
                     {
@@ -102,19 +101,12 @@ class GoogleAnalyticsService {
                 limit: 10,
             });
 
-            
-
-            console.log("🚀 ~ GoogleAnalyticsService ~ getTopPages ~ response", response.rows?.map(row => ({
-                page: row.dimensionValues[0].value,
-                views: parseInt(row.metricValues[0].value) || 0,
-                clicks: parseInt(row.metricValues[1].value) || 0
-            })));
-            
             return response.rows?.map(row => ({
                 page: row.dimensionValues[0].value,
                 views: parseInt(row.metricValues[0].value) || 0,
-                clicks: parseInt(row.metricValues[1].value) || 0
-            })) || [];
+                clicks: parseInt(row.metricValues[1].value) || 0,
+                engagementTime: parseInt(row.metricValues[2].value) || 0
+            })) || []; 
         } catch (error) {
             console.error('Error fetching GA4 top pages:', error);
             return this.getMockTopPages();
@@ -122,9 +114,6 @@ class GoogleAnalyticsService {
     }
 
     async getUserMetrics(startDate, endDate) {
-        if (this.useMockData) {
-            return this.getMockUserMetrics();
-        }
 
         try {
             const [response] = await this.analyticsDataClient.runReport({
@@ -172,7 +161,7 @@ class GoogleAnalyticsService {
             };
         } catch (error) {
             console.error('Error fetching GA4 user metrics:', error);
-            return this.getMockUserMetrics();
+            return {}
         }
     }
 

@@ -11,28 +11,26 @@ class AnalyticsController extends BaseController {
 	// Get dashboard analytics data
 	async getDashboard(req, res) {
 		try {
-			const { period = '30days' } = req.query;
+			const { period = '24hours' } = req.query;
 
 			// Calculate date range based on period
 			const { startDate, endDate, previousStartDate, previousEndDate } = getDateRange(period);
 
 			// Fetch data from services in parallel
 			const [
-				gAnalyticsTrafficData,
-				gSearchConsoleQueries,
 				gAnalyticsTopPages,
+				gAnalyticsTopPagesPrevious,
 				currentMetrics,
 				previousMetrics
 			] = await Promise.all([
-				GoogleAnalyticsService.getTrafficData(startDate, endDate),
-				GoogleSearchConsoleService.getTopQueries(startDate, endDate),
 				GoogleAnalyticsService.getTopPages(startDate, endDate),
+				GoogleAnalyticsService.getTopPages(previousStartDate, previousEndDate),
 				GoogleAnalyticsService.getUserMetrics(startDate, endDate),
 				GoogleAnalyticsService.getUserMetrics(previousStartDate, previousEndDate),
 			]);
-			console.log("🚀 ~ AnalyticsController ~ getDashboard ~ gaTrafficData:", gAnalyticsTrafficData)
 
-			
+				console.log("🚀 ~ AnalyticsController ~ getDashboard ~ gAnalyticsTopPages:", gAnalyticsTopPages)
+				console.log("🚀 ~ AnalyticsController ~ getDashboard ~ gAnalyticsTopPagesPrevious:", gAnalyticsTopPagesPrevious)
 
 
 			// Calculate percentage changes
@@ -46,44 +44,41 @@ class AnalyticsController extends BaseController {
 			};
 
 			// Calculate total clicks from traffic data
-			const totalClicks = gAnalyticsTrafficData.reduce((sum, day) => sum + day.clicks, 0);
-
-			const previousTrafficData = await GoogleAnalyticsService.getTrafficData(previousStartDate, previousEndDate);
-			const previousTotalClicks = previousTrafficData.reduce((sum, day) => sum + day.clicks, 0);
+			const totalClicks = gAnalyticsTopPages.reduce((sum, page) => sum + page.clicks, 0);
+			const totalPreviousClicks = gAnalyticsTopPagesPrevious.reduce((sum, page) => sum + page.clicks, 0);
 			
+			const totalViews = gAnalyticsTopPages.reduce((sum, page) => sum + page.views, 0);
+			const totalPreviousViews = gAnalyticsTopPagesPrevious.reduce((sum, page) => sum + page.views, 0);
 			// Calculate engagement time from traffic data
-			const totalEngagementTime = gAnalyticsTrafficData.reduce((sum, day) => sum + day.engagementTime, 0);
-			const previousTotalEngagementTime = previousTrafficData.reduce((sum, day) => sum + day.engagementTime, 0);
-		
+			const totalEngagementTimes = gAnalyticsTopPages.reduce((sum, page) => sum + page.engagementTime, 0);
+			const totalPreviousEngagementTimes = gAnalyticsTopPagesPrevious.reduce((sum, page) => sum + page.engagementTime, 0);
 
 			// Build response with real and calculated data
 			const dashboardData = {
 				analytics: {
 					currentPeriod: {
 						views: {
-							value: currentMetrics.totalViews || currentMetrics.sessions || 0,
-							previousValue: previousMetrics.totalViews || previousMetrics.sessions || 0,
+							value: totalViews || 0,
+							previousValue: totalPreviousViews || 0,
 							...calculateChange(
-								currentMetrics.totalViews || currentMetrics.sessions || 0,
-								previousMetrics.totalViews || previousMetrics.sessions || 0
+								totalViews || 0,
+								totalPreviousViews || 0
 							)
 						},
 						clicks: {
 							value: totalClicks || 0,
-							previousValue: previousTotalClicks || 0,
-							...calculateChange(totalClicks || 0, previousTotalClicks || 0)
+							previousValue: totalPreviousClicks || 0,
+							...calculateChange(totalClicks || 0, totalPreviousClicks || 0)
 						},
 						engagementTime: {
-							value: totalEngagementTime || 0,
-							previousValue: previousTotalEngagementTime || 0,
-							...calculateChange(totalEngagementTime || 0, previousTotalEngagementTime || 0)
+							value: totalEngagementTimes || 0,
+							previousValue: totalPreviousEngagementTimes || 0,
+							...calculateChange(totalEngagementTimes || 0, totalPreviousEngagementTimes || 0)
 						}
 					},
-					trafficTrends: gAnalyticsTrafficData,
 					period
 				},
 				topPages: gAnalyticsTopPages,
-				topQueries: gSearchConsoleQueries
 			};
 
 			return super.createResponse(res, 200, "SUCCESS", dashboardData);
