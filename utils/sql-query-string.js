@@ -215,6 +215,7 @@ const QueryString = {
                                 pj.created_at,
                                 pj.updated_at,
                                 pj.group_id,
+                                pj.slug,
                                 pg.group_title
                          FROM ${TABLE_NAMES.PORTFOLIO_PROJECTS} AS pj
                                   left JOIN ${TABLE_NAMES.PORTFOLIO_PROJECT_GROUPS} as pg on pj.group_id = pg.group_id`,
@@ -228,6 +229,7 @@ const QueryString = {
                                           pj.created_at,
                                           pj.updated_at,
                                           pj.group_id,
+                                          pj.slug,
                                           pg.group_title
                                    FROM ${TABLE_NAMES.PORTFOLIO_PROJECTS} AS pj
                                             left JOIN ${TABLE_NAMES.PORTFOLIO_PROJECT_GROUPS} as pg on pj.group_id = pg.group_id
@@ -244,6 +246,7 @@ const QueryString = {
                                              pj.created_at,
                                              pj.updated_at,
                                              pj.group_id,
+                                             pj.slug,
                                              pg.group_title
                                       FROM ${TABLE_NAMES.PORTFOLIO_PROJECTS} AS pj
                                                left JOIN ${TABLE_NAMES.PORTFOLIO_PROJECT_GROUPS} as pg on pj.group_id = pg.group_id
@@ -260,14 +263,21 @@ const QueryString = {
                             FROM ${TABLE_NAMES.PORTFOLIO_PROJECTS} as proj
                                      JOIN ${TABLE_NAMES.PORTFOLIO_PROJECT_ARTICLES} as article ON proj.id = article.project_id
                             WHERE proj.id = ?`,
+    getProjectDetailsBySlug: `SELECT *
+                            FROM ${TABLE_NAMES.PORTFOLIO_PROJECTS} as proj
+                                     JOIN ${TABLE_NAMES.PORTFOLIO_PROJECT_ARTICLES} as article ON proj.id = article.project_id
+                            WHERE proj.slug = ?`,
+    checkSlugExists: `SELECT COUNT(*) as count
+                      FROM ${TABLE_NAMES.PORTFOLIO_PROJECTS}
+                      WHERE slug = ? AND id != ?`,
     getListProjectImages: `SELECT *
                                FROM ${TABLE_NAMES.PORTFOLIO_PROJECT_IMAGES}
                                WHERE project_id = ?`,
-    createNewProject: `INSERT INTO ${TABLE_NAMES.PORTFOLIO_PROJECTS} (project_fullname, project_shortname,
+    createNewProject: `INSERT INTO ${TABLE_NAMES.PORTFOLIO_PROJECTS} (project_fullname, project_shortname, slug,
                                                                           start_date, end_date,
                                                                           short_description, project_thumbnail,
                                                                           group_id, github_link, demo_link)
-                           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     createProjectArticle: `INSERT INTO ${TABLE_NAMES.PORTFOLIO_PROJECT_ARTICLES} (project_id, article_body)
                                VALUES (?, ?)`,
     insertProjectImages: `INSERT INTO ${TABLE_NAMES.PORTFOLIO_PROJECT_IMAGES} (project_id, image_name)
@@ -279,6 +289,7 @@ const QueryString = {
     updateProjectDetails: `UPDATE ${TABLE_NAMES.PORTFOLIO_PROJECTS}
                                SET project_fullname  = ?,
                                    project_shortname = ?,
+                                   slug = ?,
                                    start_date        = ?,
                                    end_date          = ?,
                                    short_description = ?,

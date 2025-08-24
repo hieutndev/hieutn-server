@@ -29,13 +29,13 @@ class ProjectService extends BaseService {
 	}
 
 
-	async insertProject(projectFullName, projectShortName, startDate, endDate, shortDescription, projectThumbnail, groupId, githubLink, demoLink) {
+	async insertProject(projectFullName, projectShortName, slug, startDate, endDate, shortDescription, projectThumbnail, groupId, githubLink, demoLink) {
 
 		const {
 			isCompleted,
 			message,
 			results
-		} = await super.query(projectSQL.createNewProject, [projectFullName, projectShortName, startDate, endDate, shortDescription, projectThumbnail, groupId, githubLink, demoLink]);
+		} = await super.query(projectSQL.createNewProject, [projectFullName, projectShortName, slug, startDate, endDate, shortDescription, projectThumbnail, groupId, githubLink, demoLink]);
 
 		if (!isCompleted) {
 			throw message
@@ -106,6 +106,40 @@ class ProjectService extends BaseService {
 			...image,
 			image_url: isParseUrl ? await s3Bucket.getObject(image.image_name) : null
 		})));
+
+	}
+
+	async checkSlugExists(slug, excludeProjectId = 0) {
+		const result = await super.query(projectSQL.checkSlugExists, [slug, excludeProjectId]);
+
+		if (!result.isCompleted) {
+			throw new Error(result.message);
+		}
+
+		return result.results[0].count > 0;
+	}
+
+	async getProjectInfoBySlug(slug, isGetThumbnail = false, isGetListImages = false) {
+		const projectInfo = await super.query(projectSQL.getProjectDetailsBySlug, [slug]);
+
+		if (!projectInfo.isCompleted) {
+			throw new Error(projectInfo.message);
+		}
+
+		if (projectInfo.results.length === 0) {
+			return false;
+		}
+
+		const projectId = projectInfo.results[0].id;
+		const [projectThumbnailUrl, listProjectImages] = await Promise.all([isGetThumbnail && projectInfo.results[0].project_thumbnail && s3Bucket.getObject(projectInfo.results[0].project_thumbnail), isGetListImages && this.getListProjectImages(projectId, true)])
+
+		return {
+			...projectInfo.results[0],
+			article_body: decompressText(projectInfo.results[0].article_body),
+			project_thumbnail: projectThumbnailUrl,
+			project_thumbnail_name: projectInfo.results[0].project_thumbnail,
+			project_images: listProjectImages || []
+		}
 
 	}
 
@@ -203,6 +237,7 @@ class ProjectService extends BaseService {
 	async updateProjectDetails(projectId,
 							   projectFullName,
 							   projectShortName,
+							   slug,
 							   startDate,
 							   endDate,
 							   shortDescription,
@@ -215,7 +250,7 @@ class ProjectService extends BaseService {
 			isCompleted,
 			message,
 			results
-		} = await super.query(projectSQL.updateProjectDetails, [projectFullName, projectShortName, startDate, endDate, shortDescription, groupId !== 'null' ? groupId : null, githubLink, demoLink, projectId]);
+		} = await super.query(projectSQL.updateProjectDetails, [projectFullName, projectShortName, slug, startDate, endDate, shortDescription, groupId !== 'null' ? groupId : null, githubLink, demoLink, projectId]);
 
 		if (!isCompleted) {
 			throw message;
