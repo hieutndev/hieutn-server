@@ -315,6 +315,14 @@ const QueryString = {
     deleteProjectGroup: `DELETE
                              FROM ${TABLE_NAMES.PORTFOLIO_PROJECT_GROUPS}
                              WHERE group_id = ?`,
+    increaseProjectView: `UPDATE ${TABLE_NAMES.PORTFOLIO_PROJECTS}
+                            SET views = views + 1
+                            WHERE id = ?`,
+    getTopViewedArticles: `SELECT pj.project_fullname as title, 
+                                  pj.views
+                           FROM ${TABLE_NAMES.PORTFOLIO_PROJECTS} AS pj
+                           ORDER BY pj.views DESC
+                           LIMIT 10`
   },
   educationSQL: {
     getAllEducations: `SELECT *

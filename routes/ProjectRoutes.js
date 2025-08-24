@@ -11,6 +11,7 @@ const { requireRole } = require("../middlewares/role-checker");
 
 
 router.get('/', ProjectController.getAllProjects);
+router.get('/top-viewed', ProjectController.getTopViewedArticles);
 router.post('/', accessTokenChecker, requireRole(1), upload.fields([
 	{
 		name: "project_thumbnail",
