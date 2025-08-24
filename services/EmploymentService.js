@@ -97,7 +97,7 @@ class EmploymentService extends BaseService {
 			isCompleted,
 			message,
 			results
-		} = await super.query(employmentSQL.updateEmployment, [title, organization, timeStart, timeEnd, employmentId]);
+		} = await super.query(employmentSQL.updateEmployment, [title, organization, timeStart, timeEnd ?? null, employmentId]);
 
 		if (!isCompleted) {
 			throw message;
