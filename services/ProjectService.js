@@ -323,6 +323,27 @@ class ProjectService extends BaseService {
 		return true;
 	}
 
+	async increaseProjectView(projectId) {
+		const { isCompleted, message } = await super.query(projectSQL.increaseProjectView, [projectId]);
+
+		if (!isCompleted) {
+			throw message;
+		}
+
+		return true;
+
+	}
+
+	async getTopViewedArticles() {
+		const { isCompleted, message, results } = await super.query(projectSQL.getTopViewedArticles);
+
+		if (!isCompleted) {
+			throw message;
+		}
+
+		return results;
+	}
+
 }
 
 

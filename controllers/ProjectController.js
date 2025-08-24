@@ -92,8 +92,10 @@ class ProjectController extends BaseController {
 
 			const { projectId } = req.params;
 
-			const projectInfo = await ProjectService.getProjectInfoById(projectId, true, true);
+			await ProjectService.increaseProjectView(projectId);
 
+			const projectInfo = await ProjectService.getProjectInfoById(projectId, true, true);
+			
 			if (!projectInfo) {
 				return super.createResponse(res, 404, RESPONSE_CODE.PROJECT_NOT_FOUND);
 			}
@@ -312,6 +314,17 @@ class ProjectController extends BaseController {
 			return super.createResponse(res, 500, error)
 		}
 
+	}
+
+	async getTopViewedArticles(req, res, next) {
+		try {
+			const articles = await ProjectService.getTopViewedArticles();
+
+			return super.createResponse(res, 200, RESPONSE_CODE.SUCCESS_GET_ALL_PROJECTS, articles);
+
+		} catch (error) {
+			return super.createResponse(res, 500, error);
+		}
 	}
 }
 
