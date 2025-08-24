@@ -2,6 +2,7 @@ const BaseController = require("./BaseController");
 const ProjectService = require("../services/ProjectService");
 const { RESPONSE_CODE } = require("../constants/response-code")
 const generateUniqueString = require("../utils/generate-unique-string");
+const { generateSlug, isValidSlug } = require("../utils/slug");
 
 class ProjectController extends BaseController {
 	constructor() {
@@ -10,34 +11,43 @@ class ProjectController extends BaseController {
 
 	async createNewProject(req, res, next) {
 		try {
-			const {
-				project_fullname,
-				project_shortname,
-				start_date,
-				end_date,
-				short_description,
-				article_body,
-				group_id,
-				github_link,
-				demo_link
-			} = req.body;
+		const {
+			project_fullname,
+			project_shortname,
+			slug,
+			start_date,
+			end_date,
+			short_description,
+			article_body,
+			group_id,
+			github_link,
+			demo_link
+		} = req.body;
+		const missingFields = [
+			'project_fullname' && req.body.project_fullname,
+			'project_shortname' && req.body.project_shortname,
+			'slug' && req.body.slug,
+			'start_date' && req.body.start_date,
+			'end_date' && req.body.end_date,
+			'short_description' && req.body.short_description,
+			'article_body' && req.body.article_body,
+			'project_thumbnail' && req.files.project_thumbnail,
+		];
 
+		if (missingFields.filter(_ => _ === false)) {
+			return super.createResponse(res, 404, RESPONSE_CODE.MISSING_REQUIRED_FIELDS)
+		}
 
-			const missingFields = [
-				'project_fullname' && req.body.project_fullname,
-				'project_shortname' && req.body.project_shortname,
-				'start_date' && req.body.start_date,
-				'end_date' && req.body.end_date,
-				'short_description' && req.body.short_description,
-				'article_body' && req.body.article_body,
-				'project_thumbnail' && req.files.project_thumbnail,
-			]
+		// Validate slug format
+		if (!isValidSlug(slug)) {
+			return super.createResponse(res, 400, "INVALID_SLUG_FORMAT");
+		}
 
-			if (missingFields.filter(_ => _ === false)) {
-				return super.createResponse(res, 404, RESPONSE_CODE.MISSING_REQUIRED_FIELDS)
-			}
-
-			const projectThumbnail = req.files.project_thumbnail && req.files.project_thumbnail[0];
+		// Check if slug already exists
+		const slugExists = await ProjectService.checkSlugExists(slug, 0);
+		if (slugExists) {
+			return super.createResponse(res, 400, "SLUG_ALREADY_EXISTS");
+		}			const projectThumbnail = req.files.project_thumbnail && req.files.project_thumbnail[0];
 
 			const projectImages = req.files.project_images;
 
@@ -45,7 +55,7 @@ class ProjectController extends BaseController {
 
 			const projectImageNames = projectImages ? projectImages.map((_v) => `projectImage_${generateUniqueString()}`) : [];
 
-			const newProjectId = await ProjectService.insertProject(project_fullname, project_shortname, start_date, end_date, short_description, projectThumbnailName, group_id, github_link, demo_link);
+			const newProjectId = await ProjectService.insertProject(project_fullname, project_shortname, slug, start_date, end_date, short_description, projectThumbnailName, group_id, github_link, demo_link);
 
 			await Promise.all([
 				ProjectService.insertArticle(newProjectId, article_body),
@@ -92,9 +102,20 @@ class ProjectController extends BaseController {
 
 			const { projectId } = req.params;
 
-			await ProjectService.increaseProjectView(projectId);
+			// Check if projectId is numeric (ID) or string (slug)
+			const isNumeric = /^\d+$/.test(projectId);
+			let projectInfo;
 
-			const projectInfo = await ProjectService.getProjectInfoById(projectId, true, true);
+			if (isNumeric) {
+				await ProjectService.increaseProjectView(projectId);
+				projectInfo = await ProjectService.getProjectInfoById(projectId, true, true);
+			} else {
+				// It's a slug, get project by slug first to get the ID for view increment
+				projectInfo = await ProjectService.getProjectInfoBySlug(projectId, true, true);
+				if (projectInfo) {
+					await ProjectService.increaseProjectView(projectInfo.id);
+				}
+			}
 			
 			if (!projectInfo) {
 				return super.createResponse(res, 404, RESPONSE_CODE.PROJECT_NOT_FOUND);
@@ -115,6 +136,7 @@ class ProjectController extends BaseController {
 			const {
 				project_fullname,
 				project_shortname,
+				slug,
 				start_date,
 				end_date,
 				short_description,
@@ -129,22 +151,33 @@ class ProjectController extends BaseController {
 
 			const projectImages = req.files.project_images;
 
-			const projectImageNames = projectImages ? projectImages.map((_v) => `projectImage_${generateUniqueString()}`) : [];
+		const projectImageNames = projectImages ? projectImages.map((_v) => `projectImage_${generateUniqueString()}`) : [];
 
-			const projectInfo = await ProjectService.getProjectInfoById(projectId);
+		const projectInfo = await ProjectService.getProjectInfoById(projectId);
 
-			if (!projectInfo) {
-				return super.createResponse(res, 404, RESPONSE_CODE.PROJECT_NOT_FOUND);
+		if (!projectInfo) {
+			return super.createResponse(res, 404, RESPONSE_CODE.PROJECT_NOT_FOUND);
+		}
+
+		// Validate slug format if provided
+		if (slug && !isValidSlug(slug)) {
+			return super.createResponse(res, 400, "INVALID_SLUG_FORMAT");
+		}
+
+		// Check if slug already exists (excluding current project)
+		if (slug) {
+			const slugExists = await ProjectService.checkSlugExists(slug, projectId);
+			if (slugExists) {
+				return super.createResponse(res, 400, "SLUG_ALREADY_EXISTS");
 			}
-
-			if (!projectInfo.project_thumbnail) {
+		}			if (!projectInfo.project_thumbnail) {
 				projectInfo.project_thumbnail = projectThumbnail ? `projectThumbnail_${generateUniqueString()}` : '';
 			}
 
 			const removeImages = JSON.parse(remove_images);
 
 			await Promise.all([
-				ProjectService.updateProjectDetails(projectId, project_fullname, project_shortname, start_date, end_date, short_description, group_id, github_link, demo_link),
+				ProjectService.updateProjectDetails(projectId, project_fullname, project_shortname, slug, start_date, end_date, short_description, group_id, github_link, demo_link),
 				removeImages && removeImages.map((imageName) => ProjectService.s3Delete(imageName)),
 				ProjectService.removeListProjectImageNames(projectId, removeImages),
 				projectThumbnail && ProjectService.uploadProjectThumbnail(projectThumbnail, projectInfo.project_thumbnail_name),
