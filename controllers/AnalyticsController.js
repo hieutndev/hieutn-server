@@ -11,33 +11,31 @@ class AnalyticsController extends BaseController {
 	// Get dashboard analytics data
 	async getDashboard(req, res) {
 		try {
-			const { period = '30days' } = req.query;
+			const { period = '24hours' } = req.query;
 
 			// Calculate date range based on period
 			const { startDate, endDate, previousStartDate, previousEndDate } = getDateRange(period);
 
 			// Fetch data from services in parallel
 			const [
-				gAnalyticsTrafficData,
-				gSearchConsoleQueries,
-				gAnalyticsTopPages,
-				currentMetrics,
-				previousMetrics
+				siteMetrics,
+				previousSiteMetrics,
+				userMetrics,
+				previousUserMetrics
 			] = await Promise.all([
-				GoogleAnalyticsService.getTrafficData(startDate, endDate),
-				GoogleSearchConsoleService.getTopQueries(startDate, endDate),
-				GoogleAnalyticsService.getTopPages(startDate, endDate),
+				GoogleAnalyticsService.getSiteMetrics(startDate, endDate),
+				GoogleAnalyticsService.getSiteMetrics(previousStartDate, previousEndDate),
 				GoogleAnalyticsService.getUserMetrics(startDate, endDate),
 				GoogleAnalyticsService.getUserMetrics(previousStartDate, previousEndDate),
 			]);
-			console.log("🚀 ~ AnalyticsController ~ getDashboard ~ gaTrafficData:", gAnalyticsTrafficData)
 
-			
 
+			console.log("🚀 ~ AnalyticsController ~ getDashboard ~ userMetrics:", userMetrics)
+			console.log("🚀 ~ AnalyticsController ~ getDashboard ~ previousUserMetrics:", previousUserMetrics)
 
 			// Calculate percentage changes
 			const calculateChange = (current, previous) => {
-				if (!previous || previous === 0) return { changePercentage: 0, changeType: 'neutral' };
+				if (!previous || previous === 0) return { changePercentage: (current - previous) * 100, changeType: 'increase' };
 				const change = ((current - previous) / previous) * 100;
 				return {
 					changePercentage: Math.abs(change),
@@ -46,26 +44,26 @@ class AnalyticsController extends BaseController {
 			};
 
 			// Calculate total clicks from traffic data
-			const totalClicks = gAnalyticsTrafficData.reduce((sum, day) => sum + day.clicks, 0);
+			const totalClicks = siteMetrics.reduce((sum, page) => sum + page.clicks, 0);
+			const previousTotalClicks = previousSiteMetrics.reduce((sum, page) => sum + page.clicks, 0);
 
-			const previousTrafficData = await GoogleAnalyticsService.getTrafficData(previousStartDate, previousEndDate);
-			const previousTotalClicks = previousTrafficData.reduce((sum, day) => sum + day.clicks, 0);
-			
+			// Calculate total views from traffic data
+			const totalViews = siteMetrics.reduce((sum, page) => sum + page.views, 0);
+			const previousTotalViews = previousSiteMetrics.reduce((sum, page) => sum + page.views, 0);
+
 			// Calculate engagement time from traffic data
-			const totalEngagementTime = gAnalyticsTrafficData.reduce((sum, day) => sum + day.engagementTime, 0);
-			const previousTotalEngagementTime = previousTrafficData.reduce((sum, day) => sum + day.engagementTime, 0);
-		
+			const totalEngagementTimes = siteMetrics.reduce((sum, page) => sum + page.engagementTime, 0);
+			const previousTotalEngagementTimes = previousSiteMetrics.reduce((sum, page) => sum + page.engagementTime, 0);
 
-			// Build response with real and calculated data
 			const dashboardData = {
 				analytics: {
 					currentPeriod: {
 						views: {
-							value: currentMetrics.totalViews || currentMetrics.sessions || 0,
-							previousValue: previousMetrics.totalViews || previousMetrics.sessions || 0,
+							value: totalViews || 0,
+							previousValue: previousTotalViews || 0,
 							...calculateChange(
-								currentMetrics.totalViews || currentMetrics.sessions || 0,
-								previousMetrics.totalViews || previousMetrics.sessions || 0
+								totalViews || 0,
+								previousTotalViews || 0
 							)
 						},
 						clicks: {
@@ -74,16 +72,32 @@ class AnalyticsController extends BaseController {
 							...calculateChange(totalClicks || 0, previousTotalClicks || 0)
 						},
 						engagementTime: {
-							value: totalEngagementTime || 0,
-							previousValue: previousTotalEngagementTime || 0,
-							...calculateChange(totalEngagementTime || 0, previousTotalEngagementTime || 0)
-						}
+							value: totalEngagementTimes || 0,
+							previousValue: previousTotalEngagementTimes || 0,
+							...calculateChange(totalEngagementTimes || 0, previousTotalEngagementTimes || 0)
+						},
+						totalVisitors: {
+							value: userMetrics.totalVisitors || 0,
+							previousValue: previousUserMetrics.totalVisitors || 0,
+							...calculateChange(userMetrics.totalVisitors || 0, previousUserMetrics.totalVisitors || 0)
+
+						},
+						newVisitors: {
+							value: userMetrics.newVisitors || 0,
+							previousValue: previousUserMetrics.newVisitors || 0,
+							...calculateChange(userMetrics.newVisitors || 0, previousUserMetrics.newVisitors || 0)
+
+						},
+						totalSessions: {
+							value: userMetrics.totalSessions || 0,
+							previousValue: previousUserMetrics.totalVisitors || 0,
+							...calculateChange(userMetrics.totalSessions || 0, previousUserMetrics.totalSessions || 0)
+
+						},
 					},
-					trafficTrends: gAnalyticsTrafficData,
 					period
 				},
-				topPages: gAnalyticsTopPages,
-				topQueries: gSearchConsoleQueries
+				topPages: siteMetrics,
 			};
 
 			return super.createResponse(res, 200, "SUCCESS", dashboardData);

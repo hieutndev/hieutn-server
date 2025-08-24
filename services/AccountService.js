@@ -1,198 +1,226 @@
-const BaseService = require('./BaseService');
+const BaseService = require("./BaseService");
 const Message = require("../utils/response-message");
 const { accountSQL } = require("../utils/sql-query-string");
 const randomString = require("../utils/generate-unique-string");
 const bcrypt = require("bcrypt");
-const { RESPONSE_CODE } = require("../constants/response-code")
-
+const { RESPONSE_CODE } = require("../constants/response-code");
 
 const REGEX = require("../utils/regex");
-const { generateAccessToken, generateRefreshToken } = require("../utils/jwt-helpers");
+const {
+  generateAccessToken,
+  generateRefreshToken,
+} = require("../utils/jwt-helpers");
 
 class AccountService extends BaseService {
-	constructor() {
-		super();
-	}
+  constructor() {
+    super();
+  }
 
-	async blockAccount(userId) {
+  async blockAccount(userId) {
+    const { isCompleted, message, results } = await super.query(
+      accountSQL.blockAccount,
+      [userId],
+    );
 
-		const { isCompleted, message, results } = await super.query(accountSQL.blockAccount, [userId]);
+    if (!isCompleted) {
+      throw message;
+    }
 
-		if (!isCompleted) {
-			throw message
-		}
+    return true;
+  }
 
-		return true
+  async unBlockAccount(userId) {
+    const { isCompleted, message, results } = await super.query(
+      accountSQL.unBlockAccount,
+      [userId],
+    );
 
-	}
+    if (!isCompleted) {
+      throw message;
+    }
 
-	async unBlockAccount(userId) {
+    return true;
+  }
 
+  async getAccountByEmail(email) {
+    const queryAccountByEmail = await super.query(
+      accountSQL.getAccountByEmail,
+      [email],
+    );
 
-		const { isCompleted, message, results } = await super.query(accountSQL.unBlockAccount, [userId]);
+    if (!queryAccountByEmail.isCompleted) {
+      return [];
+    }
 
-		if (!isCompleted) {
-			throw message
-		}
+    return queryAccountByEmail.results;
+  }
 
-		return true
-	}
+  async getAccountByUsername(username) {
+    const queryAccountByUsername = await super.query(
+      accountSQL.getAccountByUsername,
+      [username],
+    );
 
-	async getAccountByEmail(email) {
-		const queryAccountByEmail = await super.query(accountSQL.getAccountByEmail, [email])
+    if (!queryAccountByUsername.isCompleted) {
+      return [];
+    }
 
-		if (!queryAccountByEmail.isCompleted) {
-			return [];
-		}
+    return queryAccountByUsername.results;
+  }
 
-		return queryAccountByEmail.results
-	}
+  async getAccountByUserId(userId) {
+    const queryAccountById = await super.query(accountSQL.getAccountById, [
+      userId,
+    ]);
 
-	async getAccountByUsername(username) {
+    if (!queryAccountById.isCompleted) {
+      return [];
+    }
 
-		const queryAccountByUsername = await super.query(accountSQL.getAccountByUsername, [username])
+    return queryAccountById.results;
+  }
 
-		if (!queryAccountByUsername.isCompleted) {
-			return [];
-		}
+  async isAccountExist(searchValue, searchBy) {
+    if (!["email", "id", "username"].includes(searchBy)) {
+      throw RESPONSE_CODE.INVALID_SEARCH_TYPE_VALUE;
+    }
 
-		return queryAccountByUsername.results
+    try {
+      let queryAccount;
+      if (searchBy === "email") {
+        queryAccount = await this.getAccountByEmail(searchValue);
+      }
 
-	}
+      if (searchBy === "id") {
+        queryAccount = await this.getAccountByUserId(searchValue);
+      }
 
-	async getAccountByUserId(userId) {
+      if (searchBy === "username") {
+        queryAccount = await this.getAccountByUsername(searchValue);
+      }
 
-		const queryAccountById = await super.query(accountSQL.getAccountById, [userId])
+      if (queryAccount.length === 0) {
+        return false;
+      }
 
-		if (!queryAccountById.isCompleted) {
-			return [];
-		}
+      return queryAccount[0];
+    } catch (error) {
+      throw error;
+    }
+  }
 
-		return queryAccountById.results
+  async hashPassword(password) {
+    return await bcrypt.hash(password, Number(process.env.PWD_SECRET));
+  }
 
-	}
+  async comparePassword(inputPassword, hashedPassword) {
+    return !!(await bcrypt.compare(inputPassword, hashedPassword));
+  }
 
-	async isAccountExist(searchValue, searchBy) {
+  async signUp(username, email, password, role) {
+    const { isCompleted, message, results } = await super.query(
+      accountSQL.signUp,
+      [
+        username || randomString(10),
+        email || null,
+        await this.hashPassword(password),
+      ],
+    );
 
-		if (!["email", "id", "username"].includes(searchBy)) {
-			throw RESPONSE_CODE.INVALID_SEARCH_TYPE_VALUE
-		}
+    if (!isCompleted) {
+      throw message;
+    }
 
-		try {
-			let queryAccount;
-			if (searchBy === "email") {
-				queryAccount = await this.getAccountByEmail(searchValue)
-			}
+    return results.insertId;
+  }
 
-			if (searchBy === "id") {
-				queryAccount = await this.getAccountByUserId(searchValue);
-			}
+  async updateAccountRefreshToken(userId, newRefreshToken) {
+    const { isCompleted, message, results } = await super.query(
+      accountSQL.updateNewRefreshToken,
+      [newRefreshToken, userId],
+    );
 
-			if (searchBy === "username") {
-				queryAccount = await this.getAccountByUsername(searchValue);
-			}
+    if (!isCompleted) {
+      throw message;
+    }
 
-			if (queryAccount.length === 0) {
-				return false
-			}
+    return true;
+  }
 
-			return queryAccount[0]
-		} catch (error) {
-			throw error
-		}
+  async getAllAccounts(options = {}) {
+    const { search = "", page = 1, limit = 10 } = options;
 
-	}
+    // Calculate offset for pagination
+    const offset = (page - 1) * limit;
 
-	async hashPassword(password) {
-		return await bcrypt.hash(password, Number(process.env.PWD_SECRET));
-	}
+    let countQuery, dataQuery, countParams, dataParams;
 
-	async comparePassword(inputPassword, hashedPassword) {
+    if (search && search.trim()) {
+      const searchTerm = `%${search.trim()}%`;
 
-		return !!(await bcrypt.compare(inputPassword, hashedPassword));
-	}
+      // Use search queries
+      countQuery = accountSQL.countAccountsWithSearch;
+      dataQuery = accountSQL.getListAccountsWithSearch;
+      countParams = [searchTerm, searchTerm];
+      dataParams = [searchTerm, searchTerm, limit, offset];
+    } else {
+      // Use non-search queries
+      countQuery = accountSQL.countAccountsWithoutSearch;
+      dataQuery = accountSQL.getListAccountsWithoutSearch;
+      countParams = [];
+      dataParams = [limit, offset];
+    }
 
-	async signUp(username, email, password, role) {
-		const {
-			isCompleted,
-			message,
-			results
-		} = await super.query(accountSQL.signUp, [username || randomString(10), email || null, await this.hashPassword(password)])
+    // Get total count for pagination
+    const {
+      isCompleted: countCompleted,
+      message: countMessage,
+      results: countResults,
+    } = await super.query(countQuery, countParams);
 
-		if (!isCompleted) {
-			throw message
-		}
+    if (!countCompleted) {
+      throw countMessage;
+    }
 
-		return results.insertId
-	}
+    const totalCount = countResults[0].total;
 
-	async updateAccountRefreshToken(userId, newRefreshToken) {
-		const {
-			isCompleted,
-			message,
-			results
-		} = await super.query(accountSQL.updateNewRefreshToken, [newRefreshToken, userId])
+    // Get paginated results
+    const { isCompleted, message, results } = await super.query(
+      dataQuery,
+      dataParams,
+    );
 
-		if (!isCompleted) {
-			throw message
-		}
+    if (!isCompleted) {
+      throw message;
+    }
 
-		return true;
-	}
+    return {
+      results,
+      totalCount,
+      page,
+      limit,
+      totalPages: Math.ceil(totalCount / limit),
+    };
+  }
 
-	async getAllAccounts(options = {}) {
-		const {
-			search = '',
-			page = 1,
-			limit = 10
-		} = options;
+  async updateAccountPassword(accountId, newPassword) {
+    try {
+      const { isCompleted, message } = super.query(
+        accountSQL.updateAccountPassword,
+        [hashedPassword, accountId],
+      );
 
-		// Calculate offset for pagination
-		const offset = (page - 1) * limit;
+      if (!isCompleted) {
+        console.log("error in query update account password: ", message);
+        return false;
+      }
 
-		let countQuery, dataQuery, countParams, dataParams;
-
-		if (search && search.trim()) {
-			const searchTerm = `%${search.trim()}%`;
-
-			// Use search queries
-			countQuery = accountSQL.countAccountsWithSearch;
-			dataQuery = accountSQL.getListAccountsWithSearch;
-			countParams = [searchTerm, searchTerm];
-			dataParams = [searchTerm, searchTerm, limit, offset];
-		} else {
-			// Use non-search queries
-			countQuery = accountSQL.countAccountsWithoutSearch;
-			dataQuery = accountSQL.getListAccountsWithoutSearch;
-			countParams = [];
-			dataParams = [limit, offset];
-		}
-
-		// Get total count for pagination
-		const { isCompleted: countCompleted, message: countMessage, results: countResults } = await super.query(countQuery, countParams);
-
-		if (!countCompleted) {
-			throw countMessage;
-		}
-
-		const totalCount = countResults[0].total;
-
-		// Get paginated results
-		const { isCompleted, message, results } = await super.query(dataQuery, dataParams);
-
-		if (!isCompleted) {
-			throw message;
-		}
-
-		return {
-			results,
-			totalCount,
-			page,
-			limit,
-			totalPages: Math.ceil(totalCount / limit)
-		};
-	}
-
+      return true;
+    } catch (error) {
+      console.log("error in update account password: ", error);
+      return false;
+    }
+  }
 }
 
-module.exports = new AccountService()
+module.exports = new AccountService();
