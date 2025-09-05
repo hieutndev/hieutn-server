@@ -1,5 +1,6 @@
 const TABLE_NAMES = {
     ACCOUNTS: 'accounts',
+    SETTINGS: 'settings',
     CARD_GAME_ROOMS: `gcard_rooms`,
     CARD_GAME_ROOM_CONFIGS: `gcard_room_configs`,
     CARD_GAME_MATCH_RESULTS: `gcard_match_results`,

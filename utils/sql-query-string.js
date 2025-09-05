@@ -542,11 +542,15 @@ const QueryString = {
                                WHERE app_id = ?`,
     updateAppDisplayStatus: `UPDATE ${TABLE_NAMES.PORTFOLIO_APPS}
                                  SET is_hide = ?
-                                 WHERE app_id = ?`,
+                                 WHERE app_id = ?;`,
     deleteApp: `DELETE
                     FROM ${TABLE_NAMES.PORTFOLIO_APPS}
-                    WHERE app_id = ?`,
+                    WHERE app_id = ?;`,
   },
+  settingSQL: {
+    getSettings: `SELECT * FROM ${TABLE_NAMES.SETTINGS}`,
+    updateSetting: `UPDATE ${TABLE_NAMES.SETTINGS} SET value = ? WHERE \`key\` = ?`
+  }
 };
 
 module.exports = QueryString;

@@ -10,6 +10,7 @@ const AccountRoutes = require('./AccountRoutes');
 const AppRoutes = require('./AppRoutes');
 const S3Routes = require('./S3Routes');
 const AnalyticsRoutes = require('./AnalyticsRoutes');
+const SettingRoutes = require('./SettingRoutes');
 
 
 router.use('/game-card', GameCardRoutes);
@@ -22,5 +23,6 @@ router.use('/accounts', AccountRoutes);
 router.use('/apps', AppRoutes);
 router.use('/s3', S3Routes);
 router.use('/analytics', AnalyticsRoutes);
+router.use('/settings', SettingRoutes);
 
 module.exports = router;
